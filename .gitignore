@@ -1,74 +1,15 @@
-# Logs
-/.cache/
-/.cache-code-audit.json
-/.cache-dependency-audit.json
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
-
-# Dependencies
-node_modules
-dist
-dist-ssr
-*.local
-*.spec
-package-lock.json
-
-# Build outputs
-/build/
-/binaries/*/build
-/binaries/*/target
-.build_venv
-
-# Configuration and environment
-.env
-.env.local
-.env.development
-.env.production
-.env.*.local
-electron/config.prod.js
-electron/build-signature.json
-build.config.json
-build/icon.ico
-
-# OS and editor files
-*.bat
 .DS_Store
+.env
+.env.*
+*.local
+*.log
 
-# Project-specific
-.million
-/src/translations/json
-exports.txt
-/server
-
-# Debian-specific files
-/binaries/*/src/debian
-
-# Specific files to ignore
-binaries/AscendaraNotificationHelper/src/debian/AscendaraNotificationHelper.py
-yarn.lock
-!/yarn.lock
-!/binaries/AscendaraAchievementWatcher/yarn.lock
-/src/pages/concept
-binaries/AscendaraDownloader/src/AscendaraDownloaderV1.py
-electron/appOrginal.js
-src/services/firebase/firestore.rules
-src/translations/en.json.20251230_222339.backup
-src/pages/webview-api.py
-scripts/upload.py
-binaries/AscendaraLocalRefresh/src/AscendaraLocalRefresh_old.py
-/binaries/AscendaraLocalRefresh/src/__pycache__
-binaries/AscendaraDownloader/src/AscendaraDownloader_OLD.py
-
-.build_venv_mac/
-
+.build/
 .build-tools/
-
-# Generated native build and renderer artifacts
+.swiftpm/
+Build/
+/MacPort/Build/
+BuildTools/
 __pycache__/
-/electron/assets/
-/electron/index.html
+*.pyc
+Config.local.json

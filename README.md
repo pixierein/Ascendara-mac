@@ -1,34 +1,33 @@
 <div align="center">
-    <img align="center" width="128" height="128" src="./src/public/icon.png" alt="Ascendara Logo">
-    <h1>Ascendara</h1>
+    <img align="center" width="128" height="128" src="./MacPort/Sources/Ascendara/Resources/AppIcon.png" alt="Ascendara Logo">
+    <h1>Ascendara for macOS</h1>
     <p><em>Less setup. More play.</em></p>
     <p>
         <a href="https://discord.gg/ap6W3xMTKW"><img src="https://img.shields.io/discord/939249162887766139?color=7289da&label=discord&logo=discord&logoColor=white" alt="Discord"></a>
-        <a href="https://github.com/tagoWorks/ascendara/releases/latest"><img src="https://img.shields.io/github/v/release/tagoWorks/ascendara?include_prereleases&label=latest%20release" alt="Latest Release"></a>
-         <img src="https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Flfs.ascendara.app%2Fcount%2Fdownloads&query=downloads&style=flat&label=download%20count" alt="Download Count">
+        <img src="https://img.shields.io/badge/macOS-14%2B-black?logo=apple" alt="macOS 14 or later">
+        <img src="https://img.shields.io/badge/SwiftUI-native-orange?logo=swift&logoColor=white" alt="Native SwiftUI">
         <a href="./LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="License"></a>
     </p>
     <p>
-        <a href="https://github.com/tagoWorks/ascendara/issues"><img src="https://img.shields.io/github/issues-raw/tagoWorks/ascendara" alt="Issues"></a>
-        <img src="https://img.shields.io/github/last-commit/tagoWorks/ascendara" alt="Last Commit">
-        <img src="https://img.shields.io/github/actions/workflow/status/ascendara/ascendara/build.yml" alt="Build Status">
-        <a href="https://github.com/tagoWorks/ascendara/network/members"><img src="https://img.shields.io/github/forks/tagoWorks/ascendara?style=flat&logo=github&logoColor=white" alt="Forks"></a>
-        <a href="https://github.com/tagoWorks/ascendara/stargazers"><img src="https://img.shields.io/github/stars/tagoWorks/ascendara?style=social" alt="GitHub Stars"></a>
+        <a href="https://github.com/Ascendara/ascendara/releases"><img src="https://img.shields.io/github/v/release/Ascendara/ascendara?include_prereleases&label=upstream%20release" alt="Upstream Release"></a>
+        <a href="https://github.com/Ascendara/ascendara/stargazers"><img src="https://img.shields.io/github/stars/Ascendara/ascendara?style=social&label=Upstream%20Stars" alt="Upstream GitHub Stars"></a>
     </p>
 </div>
 
 ## 🎮 About
 
-Ascendara simplifies your game management experience by providing a seamless way to discover, organize, and test pre-installed games. No more hassle with extracting, installing, or moving files. The game library is powered by a custom webscraper, currently featuring titles mainly from [STEAMRIP](https://ascendara.app/sources/steamrip) with plans to expand to more sources and is available on both Windows and Linux platforms.
+Ascendara simplifies your game management experience by providing a seamless way to discover, organize, and test pre-installed games. No more hassle with extracting, installing, or moving files. The game library is powered by a custom webscraper, currently featuring titles mainly from [STEAMRIP](https://ascendara.app/sources/steamrip) with plans to expand to more sources and is brought to macOS through this native SwiftUI and AppKit port.
+
+This is an unofficial macOS port, based on Ascendara 11.6.0. Follow the [macOS checklist](MacPort/TODO.md) for completed features and remaining work.
 
 ### 🔗 Quick Links
 
-- [Join the Discord](https://ascendara.app/discord) for discussions and support
-- [Submit feedback for Ascendara](https://ascendara.app/feedback)
-- [Contribute to Ascendara](https://github.com/tagoWorks/ascendara)
-- [Read the latest changelog](https://ascendara.app/changelog)
+- [Build and run on macOS](#-running-from-source)
+- [macOS development checklist](MacPort/TODO.md)
+- [Join the Ascendara Discord](https://ascendara.app/discord)
+- [Original Ascendara project](https://github.com/Ascendara/ascendara)
+- [Read the upstream changelog](https://ascendara.app/changelog)
 - [Learn about Ascend](https://ascendara.app/ascend)
-- [Check latest releases on Github](https://github.com/tagoWorks/ascendara/releases)
 
 ## ✨ Features
 
@@ -36,44 +35,44 @@ Ascendara simplifies your game management experience by providing a seamless way
   <tr>
     <td width="50%" valign="top">
       <h3>🚀 Seamless Downloads</h3>
-      <p>Lightning-fast 2 click downloads for supported games. No browser needed.</p>
+      <p>Download supported games with native progress, queue controls, pause/resume, and archive extraction.</p>
     </td>
     <td width="50%" valign="top">
       <h3>☁️ Cloud Backups</h3>
-      <p>Keep your game saves backed up securely in the cloud with Ascend.</p>
+      <p>Back up saves locally, with Ascend cloud-backup integration available through account configuration.</p>
     </td>
   </tr>
 
   <tr>
     <td width="50%" valign="top">
       <h3>🔌 Game Information</h3>
-      <p>View game details, artwork, story information, soundtrack info, and more.</p>
+      <p>View game details, artwork, story information, screenshots, requirements, and public ratings.</p>
     </td>
     <td width="50%" valign="top">
       <h3>🌐 Browser Integration</h3>
-      <p>Send supported game downloads directly to Ascendara from your browser.</p>
+      <p>Open supported ascendara:// game links directly in the native macOS app.</p>
     </td>
   </tr>
 
   <tr>
     <td width="50%" valign="top">
       <h3>🎨 Theme Customization</h3>
-      <p>Customize Ascendara with different themes and visual styles.</p>
+      <p>Customize Ascendara with twelve original themes, native animations, and reduced-motion controls.</p>
     </td>
     <td width="50%" valign="top">
       <h3>🕑 Local Indexing</h3>
-      <p>Search through supported games quickly using Ascendara's local index.</p>
+      <p>Search through supported games quickly using Ascendara's cached catalogue and custom sources.</p>
     </td>
   </tr>
 
   <tr>
     <td width="50%" valign="top">
       <h3>📱 Ascendara Companion</h3>
-      <p>Check download progress remotely with encrypted communication on your phone and other computers.</p>
+      <p>Companion pairing and remote download monitoring are planned for the macOS port. Track progress in the TODO checklist.</p>
     </td>
     <td width="50%" valign="top">
       <h3>🕹️ Big Picture Mode</h3>
-      <p>Browse your library and launch games with a controller-friendly interface made for the couch.</p>
+      <p>Browse installed games and launch them through a large-screen interface with keyboard navigation. Full controller support is planned.</p>
     </td>
   </tr>
 
@@ -83,309 +82,188 @@ Ascendara simplifies your game management experience by providing a seamless way
       <p>Keep your older console games in their own library with artwork, setup memory, and easy launching.</p>
     </td>
     <td width="50%" valign="top">
-      <h3>🌍 105 Language Support</h3>
-      <p>Use Ascendara in a wide range of languages from around the world.</p>
+      <h3>🌍 Language Support</h3>
+      <p>The macOS interface is currently English. Additional languages and translation packs are on the roadmap.</p>
     </td>
   </tr>
 </table>
 
-<details>
-<summary>See the 12 base languages</summary>
-
-These languages come with the app by default:
-
-- English
-- Spanish
-- French
-- German
-- Italian
-- Chinese
-- Arabic
-- Hindi
-- Bengali
-- Portuguese
-- Russian
-- Japanese
-
-<details>
-<summary>Want to see the full list?</summary>
-
-- Afrikaans
-- Albanian
-- Amharic
-- Armenian
-- Azerbaijani
-- Basque
-- Belarusian
-- Bulgarian
-- Bosnian
-- Catalan
-- Cebuano
-- Chichewa
-- Chinese (Traditional)
-- Corsican
-- Croatian
-- Czech
-- Danish
-- Dutch
-- Esperanto
-- Estonian
-- Filipino
-- Finnish
-- Frisian
-- Galician
-- Georgian
-- Greek
-- Gujarati
-- Hausa
-- Hawaiian
-- Hebrew
-- Hmong
-- Hungarian
-- Icelandic
-- Igbo
-- Indonesian
-- Irish
-- Javanese
-- Kannada
-- Kazakh
-- Khmer
-- Korean
-- Kurdish
-- Kyrgyz
-- Lao
-- Latin
-- Latvian
-- Lithuanian
-- Luxembourgish
-- Macedonian
-- Malagasy
-- Malay
-- Malayalam
-- Maltese
-- Maori
-- Marathi
-- Mongolian
-- Myanmar (Burmese)
-- Nepali
-- Norwegian
-- Pashto
-- Persian
-- Polish
-- Punjabi
-- Romanian
-- Samoan
-- Scottish Gaelic
-- Serbian
-- Sesotho
-- Shona
-- Sindhi
-- Sinhala
-- Slovak
-- Slovenian
-- Somali
-- Sundanese
-- Swedish
-- Swahili
-- Tajik
-- Tamil
-- Telugu
-- Thai
-- Turkish
-- Ukrainian
-- Urdu
-- Uzbek
-- Vietnamese
-- Welsh
-- Xhosa
-- Yiddish
-- Yoruba
-- Zulu
-
-</details>
-
-</details>
-
 ## 🖼️ Preview App Pages
+
+These screenshots show the original Ascendara design used as the macOS port’s reference. Native macOS screenshots are tracked in the [TODO checklist](MacPort/TODO.md).
 
 <details>
 <summary>Dropdown all pages</summary>
 <div style="display: flex; flex-wrap: wrap; justify-content: center;">
   <div style="margin: 1%; width: 24%;">
     <h3 style="text-align: center;">Home Page</h3>
-    <img src="./readme/home.png" width="100%"/>
+    <img src="https://raw.githubusercontent.com/pixierein/ascendara/88f2e323cd58213975806a4cb62d5496f1e136c7/readme/home.png" width="100%"/>
   </div>
   <div style="margin: 1%; width: 24%;">
     <h3 style="text-align: center;">Search Page</h3>
-    <img src="./readme/search.png" width="100%"/>
+    <img src="https://raw.githubusercontent.com/pixierein/ascendara/88f2e323cd58213975806a4cb62d5496f1e136c7/readme/search.png" width="100%"/>
   </div>
   <div style="margin: 1%; width: 24%;">
     <h3 style="text-align: center;">Download Game</h3>
-    <img src="./readme/download-game.png" width="100%"/>
+    <img src="https://raw.githubusercontent.com/pixierein/ascendara/88f2e323cd58213975806a4cb62d5496f1e136c7/readme/download-game.png" width="100%"/>
   </div>
   <div style="margin: 1%; width: 24%;">
     <h3 style="text-align: center;">Game Metadata</h3>
-    <img src="./readme/game-metadata.png" width="100%"/>
+    <img src="https://raw.githubusercontent.com/pixierein/ascendara/88f2e323cd58213975806a4cb62d5496f1e136c7/readme/game-metadata.png" width="100%"/>
   </div>
   <div style="margin: 1%; width: 24%;">
     <h3 style="text-align: center;">Library</h3>
-    <img src="./readme/library.png" width="100%"/>
+    <img src="https://raw.githubusercontent.com/pixierein/ascendara/88f2e323cd58213975806a4cb62d5496f1e136c7/readme/library.png" width="100%"/>
   </div>
   <div style="margin: 1%; width: 24%;">
     <h3 style="text-align: center;">Play Game</h3>
-    <img src="./readme/playgame.png" width="100%"/>
+    <img src="https://raw.githubusercontent.com/pixierein/ascendara/88f2e323cd58213975806a4cb62d5496f1e136c7/readme/playgame.png" width="100%"/>
   </div>
   <div style="margin: 1%; width: 24%;">
     <h3 style="text-align: center;">Downloads</h3>
-    <img src="./readme/downloads.png" width="100%"/>
+    <img src="https://raw.githubusercontent.com/pixierein/ascendara/88f2e323cd58213975806a4cb62d5496f1e136c7/readme/downloads.png" width="100%"/>
   </div>
   <div style="margin: 1%; width: 24%;">
     <h3 style="text-align: center;">Profile</h3>
-    <img src="./readme/profile.png" width="100%"/>
+    <img src="https://raw.githubusercontent.com/pixierein/ascendara/88f2e323cd58213975806a4cb62d5496f1e136c7/readme/profile.png" width="100%"/>
   </div>
 </div>
 </details>
 
-## 📦 Install Ascendara
+## 📦 Install Ascendara for macOS
 
-Ascendara is available for both **Windows** and **Linux**.
+Requires **macOS 14 or later**. Open the macOS DMG and drag **Ascendara** onto **Applications**. To make a local installer, use the [DMG build command](#dmg-installer) below. You can also build the app from source and copy `MacPort/Build/Ascendara.app` into Applications.
 
-The installer always downloads the latest version. Older versions can be found on the [GitHub Releases](https://github.com/Ascendara/ascendara/releases) page.
-
-The installer is also open source and available [here](https://github.com/Ascendara/installer).
-
-### Windows
-
-[**Download Ascendara for Windows**](https://cdn.ascendara.app/files/AscendaraInstaller.exe)
-
-### Linux
-
-Run:
-
-```bash
-curl -fsSL https://ascendara.app/install.sh | bash
-```
+The app builds for the current Mac’s architecture. Highball support for Windows games requires Apple Silicon; Wine engines, Rosetta where needed, and game compatibility are separate setup requirements.
 
 ## 🤝 Contributing
 
-Contributing to Ascendara is the best way to get your desired features, bug fixes, or improvements into the official build! When your contribution is accepted, your changes will be prominently featured in the Ascendara changelogs, giving you recognition for your valuable input to the project. Learn how to contribute to Ascendara [here](https://ascendara.app/docs/getting-started/contributing).
+Contributing to Ascendara for macOS helps bring more features and improvements to the native app. Check the [TODO checklist](MacPort/TODO.md), choose an open item, and include relevant verification with your pull request. Use simple PascalCase identifiers except where Swift APIs require specific names.
+
+The original Ascendara project and its contribution information are available [here](https://github.com/Ascendara/ascendara).
 
 ## 📂 Project Structure
 
-The Ascendara project is organized into the following main directories:
+The native macOS project lives in **MacPort/**:
 
-### **src/** - Core application logic and UI implementation
+- **Sources/Ascendara/App/** — application, custom titlebar, navigation, state, and preferences.
+- **Sources/Ascendara/Models/** — game, catalogue, and runtime models.
+- **Sources/Ascendara/Services/** — downloads, library storage, accounts, backups, and process management.
+- **Sources/Ascendara/Views/** and **IntegrationViews/** — SwiftUI screens and integrations.
+- **Sources/Ascendara/Resources/** — app icons and retro console metadata.
+- **Scripts/** — app/DMG builds, helper setup, and launch commands.
+- **TODO.md** — completed features and remaining work.
 
-- **components/** - Reusable React components for the UI
-  - **ui/** - shadcn/ui component library for modern UI elements
-- **context/** - React context providers for global state management (authentication, language, settings, themes, tour)
-- **hooks/** - Custom React hooks for efficient image loading and caching
-- **lib/** - Utility libraries and helper functions
-- **pages/** - Main application pages and screens (Home, Library, Downloads, Settings, etc.)
-- **public/** - Static assets and public resources
-  - **sounds/** - UI sound effects
-  - **guide/** - User guide assets
-- **services/** - Service modules for external APIs and core functionality (Firebase, game info, downloads, analytics, integrations)
-- **styles/** - CSS styling files for animations, menu bar, and scrollbars
-- **translations/** - Internationalization files for 12 base languages (English, Spanish, French, German, Italian, Chinese, Arabic, Hindi, Bengali, Portuguese, Russian, Japanese)
-
-### **binaries/** - Prebuilt Python binaries for core functionality
-
-- **AscendaraAchievementWatcher/** - Tracks and monitors game achievements
-- **AscendaraCrashReporter/** - Automated crash reporting and diagnostics
-- **AscendaraDownloader/** - Multi-threaded game download manager supporting various file hosts
-- **AscendaraGameHandler/** - Game execution, process management, and runtime monitoring
-- **AscendaraLocalRefresh/** - Game index scraper. No longer shipped with the app; the API runs it on a schedule
-- **AscendaraNotificationHelper/** - System notification helper for download events
-
-  > ℹ️ **INFO:** The tools below are additional tools that do not come with the official build of Ascendara. Instead, they utilize Ascendara's tool installation feature to install these supplementary tools as needed.
-
-- **AscendaraLanguageTranslation/** - Translation tool used to translate to the additional 93 languages
-- **AscendaraTorrentHandler/** - Torrent download functionality
-
-### **electron/** - Electron main process and IPC communication
-
-- **modules/** - Modular IPC handlers and backend logic (configuration, Discord RPC, downloads, games, settings, system utilities, updates, window management, and more)
-
-### **scripts/** - Development and build automation scripts for Windows/Linux builds, translation checking, and code statistics
+Generated apps, helper binaries, and compiler caches are ignored by Git.
 
 ## 🛠️ Running from Source
 
-For detailed instructions, check out the [Developer Docs](https://ascendara.app/docs/developer/build-from-source).
-
 ### Prerequisites
 
-Before building, ensure you have all required dependencies. [View full requirements](https://ascendara.app/docs/developer/build-from-source#prerequisites).
+- macOS 14 or later.
+- A Swift 6 toolchain. Apple’s Command Line Tools are sufficient; full Xcode is optional.
+- Python 3 and Git only if building the optional Highball helper.
+
+The app itself uses SwiftUI and AppKit, with no Electron, Chromium, Node, or Python runtime.
 
 ### Quick Start
 
-> ⚠️ **WARNING:** Some API features like reporting and analytics services will not work on the public version of the app. Additionally, you will not be able to run games in development mode. Check the [Developer Docs](https://ascendara.app/docs/developer/build-from-source#important-limitations) for more information.
-
-1. **Clone the Repository**
-
-   ```sh
-   git clone https://github.com/ascendara/ascendara.git
-   ```
-
-2. **Install Node Dependencies**
-
-> **Note:** You can use any package manager you prefer, such as npm, yarn, or pnpm.
-
-Using npm:
+From the repository root:
 
 ```sh
-npm install
+cd MacPort
+./Scripts/Build.sh
+open Build/Ascendara.app
 ```
 
-Or using yarn:
+For a debug build and launch:
 
 ```sh
-yarn
+./Scripts/Run.sh
 ```
 
-3. **Configure Firebase (Optional)**
+Open `MacPort/Package.swift` in Xcode to work on the native project. The build automatically downloads and verifies the pinned 7-Zip 26.03 helper when needed, and packages its license notices.
 
-   Firebase is optional for development. If you have Firebase credentials, create a `.env` file:
+### Windows Game Compatibility
 
-   ```sh
-   cp .env.example .env
-   ```
+From `MacPort`, optionally build and bundle Highball:
 
-   Then edit `.env` and replace the placeholder values with your actual Firebase project credentials from the [Firebase Console](https://console.firebase.google.com/).
+```sh
+python3 Scripts/BuildHighball.py
+./Scripts/Build.sh
+```
 
-   > **Note:** Firebase will automatically initialize if credentials are detected. Leave the Firebase fields empty in `.env` to run in development mode without authentication features. The `.env` file is gitignored and will not be committed to the repository.
+The helper builds the pinned Highball v0.10.22 CLI for Apple Silicon. In Preferences → Compatibility, configure Highball engines and bottles or select an installed Wine executable. Engines are installed separately; D3DMetal license acceptance and Rosetta setup remain explicit actions. SteamCMD and retro emulators can also be selected in Preferences.
 
-4. **Install Python Dependencies**
+### Accounts and App Data
 
-   ```sh
-   pip install -r requirements.txt
-   ```
+Firebase account configuration is entered in Ascend → Account configuration. Account services require a valid configuration; TorBox requires its own account key. Credentials use macOS Keychain where supported.
 
-5. **Run the Development App**
+App metadata lives in `~/Library/Application Support/Ascendara Native`. Existing Electron libraries can be imported explicitly. Downloads and backups use the locations selected in Preferences.
 
-   Using npm:
+<details>
+<summary>Isolated development data</summary>
 
-   ```sh
-   npm run start
-   ```
+Set `ASCENDARA_NATIVE_HOME=/absolute/test/directory` when launching the executable to redirect app metadata, the catalogue cache, and Highball engine/bottle storage. Download and backup destinations, UserDefaults, and Keychain retain their own locations. Use separate paths and test credentials when exercising those integrations.
 
-   Or using yarn:
+</details>
 
-   ```sh
-   yarn start
-   ```
+### Verify the Build
 
-To build the source code into an executable, read the [Developer Docs](https://ascendara.app/docs/developer/build-from-source).
+From `MacPort`:
+
+```sh
+./Scripts/Build.sh
+codesign --verify --deep --strict Build/Ascendara.app
+```
+
+Live provider/account verification is tracked in [TODO.md](MacPort/TODO.md). `swift package clean` removes compiler output while keeping the packaged app and prepared helpers.
+
+### Release Builds
+
+Release packaging optimizes for size, strips unused symbols and helper architectures, and applies transparent APFS/HFS+ compression. The app keeps its original full-resolution artwork and native animations. Current local packaging uses about **4.7 MB on disk**, with **8.6 MB of uncompressed contents**; allocation depends on filesystem support.
+
+Builds use ad-hoc signing by default. `ASCENDARA_MAC_SIGN_IDENTITY` selects an installed signing identity and enables hardened runtime and secure timestamps for the app and bundled executables.
+
+### DMG Installer
+
+From the repository root:
+
+```sh
+./MacPort/Scripts/BuildDmg.sh
+```
+
+This builds the release app and creates `MacPort/Build/Ascendara-Mac-<version>-<architecture>.dmg` with an Applications shortcut and a matching `.dmg.sha256` checksum. The version comes from the app's `Info.plist`; the architecture comes from its executable. `MacPort/Build` is ignored by Git.
+
+To package the existing app without compiling it again:
+
+```sh
+./MacPort/Scripts/BuildDmg.sh --skip-build
+```
+
+### Signed and Notarized Releases
+
+Install your Developer ID Application certificate in Keychain, then save notarization credentials using `xcrun notarytool store-credentials Ascendara`. See [Apple's notarization workflow](https://developer.apple.com/documentation/security/customizing-the-notarization-workflow) for credential setup.
+
+```sh
+ASCENDARA_MAC_SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" \
+ASCENDARA_MAC_NOTARY_PROFILE="Ascendara" \
+./MacPort/Scripts/BuildDmg.sh --notarize
+```
+
+The script signs the app, its helpers, and the DMG, submits the image to Apple, requires an accepted result, and staples and validates the ticket. Notarization reports stay in `MacPort/Build`. The checksum is generated after signing and stapling. An unsuccessful run keeps the previous completed DMG intact.
+
+Without `--notarize`, packaging stays local and produces a non-notarized DMG. Developer ID signing and Apple's notarization service need your configured credentials; the local build does not establish acceptance by Gatekeeper.
 
 ## 🗺️ Development Roadmap
 
-Ascendara's development roadmap can be found [here](https://ascendara.app/roadmap).
+The macOS roadmap is maintained as a [checkable TODO list](MacPort/TODO.md). The original Ascendara roadmap is available [here](https://ascendara.app/roadmap).
 
 ## 📝 License & Contact
 
-Licensed under [MIT](./LICENSE) - 2026 tagoWorks
+Licensed under [MIT](./LICENSE) - 2026 tagoWorks. Original code and artwork attribution is preserved. Bundled 7-Zip and optional Highball have their own license notices.
 
-### Get in Touch
+### Original Project Contact
 
 - Email: [santiago@tago.works](mailto:santiago@tago.works)
 - Website: [tago.works](https://tago.works)
@@ -394,5 +272,5 @@ Licensed under [MIT](./LICENSE) - 2026 tagoWorks
 ---
 
 <div align="center">
-    <sub>Built with ❤️ by <a href="https://tago.works">tago</a></sub>
+    <sub>Original Ascendara built with ❤️ by <a href="https://tago.works">tago</a> · Native macOS community port</sub>
 </div>

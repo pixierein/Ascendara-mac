@@ -1,0 +1,8 @@
+.build/
+.build-tools/
+.swiftpm/
+Build/
+BuildTools/
+.DS_Store
+Config.local.json
+__pycache__/
