@@ -13,3 +13,4 @@ BuildTools/
 __pycache__/
 *.pyc
 Config.local.json
+/MacPort/Private/
