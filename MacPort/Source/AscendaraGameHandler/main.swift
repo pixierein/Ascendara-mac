@@ -27,6 +27,7 @@ private struct Status: Codable {
     var Crashed = false
     var ExitCode: Int32?
     var Error: String?
+    var DetailLogPath: String?
     var RelatedProcessCount = 0
     var UpdatedAt = Date()
 }
@@ -113,41 +114,33 @@ private func Write<T: Encodable>(_ Value: T, to URL: URL) throws {
     try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: URL.path)
 }
 
-private func Tail(_ URL: URL, Limit: Int = 4000) -> String {
-    guard let Handle = try? FileHandle(forReadingFrom: URL) else { return "" }
-    defer { try? Handle.close() }
-    guard let Size = try? Handle.seekToEnd() else { return "" }
-    do {
-        try Handle.seek(toOffset: Size > UInt64(Limit) ? Size - UInt64(Limit) : 0)
-        return String(decoding: Handle.readDataToEndOfFile(), as: UTF8.self)
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-    } catch { return "" }
-}
-
-private func LaunchFailure(_ Job: Job, LogURL: URL, ExitCode: Int32) -> String {
-    let Output = Tail(LogURL)
-    guard let Home = Job.Environment["HIGHBALL_HOME"] else {
-        return Output.isEmpty ? "Game exited with status \(ExitCode)." : Output
-    }
-    // Highball prints the path to its detailed Wine log in the handler output.
-    // Read only logs inside the configured Highball directory.
+private func DetailLogPath(_ Job: Job, LogURL: URL) -> String? {
+    guard let Home = Job.Environment["HIGHBALL_HOME"],
+          let Output = try? String(contentsOf: LogURL, encoding: .utf8) else { return nil }
+    // Highball prints its Wine log path in the launch output. Keep the complete
+    // log on disk and validate the path before exposing it to the UI.
     let LogRoot = URL(fileURLWithPath: Home, isDirectory: true)
         .appendingPathComponent("logs", isDirectory: true).resolvingSymlinksInPath().standardizedFileURL
-    let ReportedPath = Output.components(separatedBy: .newlines)
-        .compactMap { $0.components(separatedBy: "log: ").last }
-        .first { $0.hasPrefix("/") }
-    let Detail: String
-    if let ReportedPath {
-        let ReportedURL = URL(fileURLWithPath: ReportedPath).resolvingSymlinksInPath().standardizedFileURL
-        Detail = (ReportedURL.path == LogRoot.path || ReportedURL.path.hasPrefix(LogRoot.path + "/"))
-            ? Tail(ReportedURL, Limit: 12000) : ""
-    } else { Detail = "" }
-    if Detail.localizedCaseInsensitiveContains("c0000135") {
-        return "Windows could not load a required DLL or runtime (c0000135). Check that the game files are complete and its prerequisites are installed in this Highball environment."
+    for Line in Output.components(separatedBy: .newlines).reversed() {
+        guard let Range = Line.range(of: "log: ") else { continue }
+        let Path = Line[Range.upperBound...].trimmingCharacters(in: .whitespacesAndNewlines)
+        guard Path.hasPrefix("/") else { continue }
+        let URL = URL(fileURLWithPath: Path).resolvingSymlinksInPath().standardizedFileURL
+        if URL.path.hasPrefix(LogRoot.path + "/") && FileManager.default.fileExists(atPath: URL.path) {
+            return URL.path
+        }
     }
-    let LastError = Detail.components(separatedBy: .newlines).reversed()
-        .first { $0.contains("err:") || $0.contains("failed") }
-    return LastError ?? (Output.isEmpty ? "Game exited with status \(ExitCode)." : Output)
+    return nil
+}
+
+private func LaunchFailure(_ Status: Status, DetailLogPath: String?) -> String {
+    if Status.Crashed { return "Game process crashed with signal \(Status.ExitCode ?? -1). See the complete launch log." }
+    if let Path = DetailLogPath,
+       let Detail = try? String(contentsOfFile: Path, encoding: .utf8),
+       Detail.localizedCaseInsensitiveContains("c0000135") {
+        return "Windows could not load a required DLL or runtime (c0000135). Check the game files and prerequisites. The complete logs are available below."
+    }
+    return "Game exited with status \(Status.ExitCode ?? -1). See the complete launch log for the cause."
 }
 
 private func Stop(_ Game: Process, Related: Set<ProcessIdentity>, Job: Job) {
@@ -245,12 +238,17 @@ private func Run(_ JobURL: URL) throws {
     Status.ObservedSeconds = max(0, Int(Ended.timeIntervalSince(Started)))
     Status.EndedAt = Ended
     Status.ExitCode = Game.terminationStatus
-    Status.Crashed = !Stopped && !TrackedRelated && Game.terminationReason == .uncaughtSignal
+    Status.Crashed = !Stopped && Game.terminationReason == .uncaughtSignal
         && ![SIGHUP, SIGINT, SIGTERM].contains(Game.terminationStatus)
     Status.RelatedProcessCount = 0
     Status.Phase = Stopped ? "stopped" : "completed"
-    if !Stopped && Game.terminationStatus != 0 {
-        Status.Error = LaunchFailure(Job, LogURL: LogURL, ExitCode: Game.terminationStatus)
+    if !Stopped {
+        Status.DetailLogPath = DetailLogPath(Job, LogURL: LogURL)
+        if Game.terminationStatus != 0 {
+            Status.Error = LaunchFailure(Status, DetailLogPath: Status.DetailLogPath)
+        } else if Status.ObservedSeconds < 2 && !TrackedRelated {
+            Status.Error = "Game closed immediately. See the complete launch log for the cause."
+        }
     }
     Status.UpdatedAt = Ended
     try Write(Status, to: StatusURL)

@@ -115,8 +115,7 @@ final class CompatibilityService: ObservableObject {
 
     var IsHighballReady: Bool {
         Status.HighballAvailable && Status.RosettaInstalled &&
-            DefaultEngineID.map { Status.Engines.contains($0) } == true &&
-            Status.Bottles.contains("ascendara")
+            Status.BottleEngines["ascendara"].map { Status.Engines.contains($0) } == true
     }
 
     var IsReady: Bool { Status.WineAvailable || IsHighballReady }
@@ -233,7 +232,13 @@ final class CompatibilityService: ObservableObject {
                 let Engines = try await NativeProcess.Checked(Highball, ["engine", "list"], Environment: Environment)
                 Current.Engines = Engines.components(separatedBy: .newlines).filter { $0.contains("\trenderers:") && !$0.contains("INCOMPLETE") }.compactMap { $0.components(separatedBy: "\t").first }
                 let Bottles = try await NativeProcess.Checked(Highball, ["bottle", "list"], Environment: Environment)
-                Current.Bottles = Bottles.components(separatedBy: .newlines).filter { $0.contains("\tengine=") }.compactMap { $0.components(separatedBy: "\t").first }
+                for Line in Bottles.components(separatedBy: .newlines) {
+                    let Fields = Line.components(separatedBy: "\t")
+                    guard let Name = Fields.first, !Name.isEmpty,
+                          let EngineField = Fields.first(where: { $0.hasPrefix("engine=") }) else { continue }
+                    Current.BottleEngines[Name] = String(EngineField.dropFirst("engine=".count))
+                }
+                Current.Bottles = Current.BottleEngines.keys.sorted()
             } catch { Current.ErrorMessage = error.localizedDescription }
         }
         Status = Current
@@ -244,6 +249,19 @@ final class CompatibilityService: ObservableObject {
         guard let Highball = FindHighball() else { throw RuntimeError.Message("Highball was not found. Choose its executable in Settings.") }
         guard !Name.isEmpty, !Engine.isEmpty else { throw RuntimeError.Message("Choose a bottle name and an installed engine.") }
         _ = try await NativeProcess.Checked(Highball, ["bottle", "create", Name, "--engine", Engine], Environment: Environment)
+        await Detect()
+    }
+
+    func SetBottleEngine(Name: String, Engine: String) async throws {
+        guard let Highball = FindHighball(), Status.Engines.contains(Engine), Status.Bottles.contains(Name) else {
+            throw RuntimeError.Message("Choose an existing bottle and an installed engine.")
+        }
+        if Status.BottleEngines[Name] == Engine { return }
+        defer { ClearSetup() }
+        ShowSetup("Switching the Windows environment to \(Engine)…")
+        _ = try await NativeProcess.Checked(Highball, ["bottle", "set", Name, "engine", Engine], Environment: Environment)
+        ShowSetup("Refreshing the Windows environment…")
+        _ = try await NativeProcess.Checked(Highball, ["bottle", "repair", Name], Environment: Environment)
         await Detect()
     }
 
@@ -268,6 +286,13 @@ final class CompatibilityService: ObservableObject {
             throw RuntimeError.Message("Choose a valid Highball environment name.")
         }
         defer { ClearSetup() }
+        let Current = await Detect()
+        if Current.AppleSilicon, Current.RosettaInstalled,
+           Current.HighballAvailable,
+           let ExistingEngine = Current.BottleEngines[Name],
+           Current.Engines.contains(ExistingEngine) {
+            return
+        }
         let Work: Task<String, Error>
         if let Existing = PreparationTask { Work = Existing }
         else {
@@ -284,15 +309,15 @@ final class CompatibilityService: ObservableObject {
         }
         PreparationTask = nil
         guard let Highball = FindHighball() else { throw RuntimeError.Message("Highball is not bundled with this build.") }
-        let Bottles = try await NativeProcess.Checked(Highball, ["bottle", "list"], Environment: Environment)
-        let ExistingEngine = Bottles.components(separatedBy: .newlines).first(where: { $0.hasPrefix(Name + "\tengine=") })?
-            .components(separatedBy: "\t").dropFirst().first?.replacingOccurrences(of: "engine=", with: "")
+        let Prepared = await Detect()
+        let ExistingEngine = Prepared.BottleEngines[Name]
         if ExistingEngine == nil {
             ShowSetup("Preparing the Windows environment…")
             _ = try await NativeProcess.Checked(Highball, ["bottle", "create", Name, "--engine", Engine], Environment: Environment)
-        } else if ExistingEngine != Engine {
+        } else if let ExistingEngine, ExistingEngine != Engine && !Prepared.Engines.contains(ExistingEngine) {
             ShowSetup("Updating the Windows environment…")
             _ = try await NativeProcess.Checked(Highball, ["bottle", "set", Name, "engine", Engine], Environment: Environment)
+            _ = try await NativeProcess.Checked(Highball, ["bottle", "repair", Name], Environment: Environment)
         }
         ShowSetup("Checking the Windows environment…")
         await Detect()
@@ -357,6 +382,9 @@ final class CompatibilityService: ObservableObject {
         }
         try Data.write(to: LatestManifestFile, options: .atomic)
         try await EnsureReady()
+        if Status.Bottles.contains("ascendara") {
+            try await SetBottleEngine(Name: "ascendara", Engine: Engine)
+        }
     }
 
     private func ValidateManifest(_ Data: Data) throws -> String {

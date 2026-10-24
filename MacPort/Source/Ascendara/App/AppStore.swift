@@ -76,6 +76,7 @@ final class AppStore: ObservableObject {
     @Published var IsLoading = false
     @Published var CatalogWarning: String?
     @Published var ErrorMessage: String?
+    @Published var GameFailure: GameFailureReport?
     @Published var Notice: String?
     @Published var ShowingWelcome = false
     @Published var ShowingBigPicture = false
@@ -156,6 +157,11 @@ final class AppStore: ObservableObject {
             self?.UpdateAchievementTimer(RunningIds: Ids)
         }.store(in: &Observers)
         Launcher.$ErrorMessage.compactMap { $0 }.sink { [weak self] in self?.ErrorMessage = $0 }.store(in: &Observers)
+        Launcher.$Failure.compactMap { $0 }.sink { [weak self] Failure in
+            self?.GameFailure = Failure
+            NSApp.unhide(nil)
+            NSApp.activate(ignoringOtherApps: true)
+        }.store(in: &Observers)
         Launcher.OnSessionEnded = { [weak self] Id, StartedAt, Seconds in
             do { try self?.LibraryStore.RecordSession(Id, StartedAt: StartedAt, Seconds: Seconds) }
             catch { self?.Report(error) }
@@ -422,7 +428,8 @@ final class AppStore: ObservableObject {
                 }
                 try LibraryStore.RecordLaunch(Game.Id)
                 if Settings.HideOnGameLaunch { NSApp.hide(nil) }
-            } catch { Report(error) }
+            } catch is GameLaunchFailure { /* The full game log is shown separately. */ }
+            catch { Report(error) }
         }
     }
     func StopGame(_ Game: LibraryGame) {

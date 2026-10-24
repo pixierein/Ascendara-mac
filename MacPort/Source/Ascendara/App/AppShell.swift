@@ -71,6 +71,9 @@ struct AppShell: View {
         .alert("Ascendara", isPresented: Binding(get: { Store.ErrorMessage != nil }, set: { if !$0 { Store.ErrorMessage = nil } })) {
             Button("OK") { Store.ErrorMessage = nil }
         } message: { Text(Store.ErrorMessage ?? "") }
+        .sheet(item: $Store.GameFailure) { Report in
+            GameFailureView(Report: Report)
+        }
         .onChange(of: Store.ShowingWelcome) { _, Active in
             if Active && Store.ShowingBigPicture { Store.ShowingBigPicture = false }
         }
@@ -132,6 +135,57 @@ struct AppShell: View {
         case .Ascend: return .purple
         default: return Theme.Accent
         }
+    }
+}
+
+private struct GameFailureView: View {
+    @Environment(\.dismiss) private var Dismiss
+    let Report: GameFailureReport
+    @State private var Log = "Loading the complete game log..."
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("\(Report.GameName) closed unexpectedly")
+                        .font(.title2.bold())
+                    Text(Report.Summary).foregroundStyle(Theme.SecondaryText)
+                }
+                Spacer()
+                Button("Close") { Dismiss() }
+            }
+            TextEditor(text: .constant(Log))
+                .font(.system(size: 12, design: .monospaced))
+                .scrollContentBackground(.hidden)
+                .background(Theme.Background, in: RoundedRectangle(cornerRadius: 8))
+                .overlay(RoundedRectangle(cornerRadius: 8).stroke(Theme.Border))
+                .accessibilityLabel("Complete game and compatibility logs")
+            HStack {
+                Button("Reload Log") { Task { await LoadLog() } }
+                Button("Copy Full Log") {
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(Log, forType: .string)
+                }
+                Button("Show Log File") {
+                    NSWorkspace.shared.activateFileViewerSelecting([Report.LaunchLog])
+                }
+                if let DetailLog = Report.DetailLog {
+                    Button("Show Wine Log") {
+                        NSWorkspace.shared.activateFileViewerSelecting([DetailLog])
+                    }
+                }
+                Spacer()
+            }
+        }
+        .padding(24)
+        .frame(minWidth: 760, minHeight: 540)
+        .task(id: Report.id) {
+            await LoadLog()
+        }
+    }
+
+    private func LoadLog() async {
+        Log = await Task.detached(priority: .utility) { Report.FullLog }.value
     }
 }
 

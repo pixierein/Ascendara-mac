@@ -174,6 +174,7 @@ struct CompatibilityStatus: Equatable {
     var HighballPath: String?
     var Engines: [String] = []
     var Bottles: [String] = []
+    var BottleEngines: [String: String] = [:]
     var ErrorMessage: String?
     var WineAvailable: Bool { WinePath != nil }
     var HighballAvailable: Bool { HighballPath != nil && AppleSilicon }

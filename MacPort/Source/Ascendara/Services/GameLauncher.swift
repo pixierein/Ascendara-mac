@@ -26,14 +26,38 @@ private struct GameHandlerStatus: Codable {
     var Crashed: Bool
     var ExitCode: Int32?
     var Error: String?
+    var DetailLogPath: String?
     var RelatedProcessCount: Int
     var UpdatedAt: Date
 }
+
+struct GameFailureReport: Identifiable {
+    let id: UUID
+    let GameName: String
+    let Summary: String
+    let LaunchLog: URL
+    let DetailLog: URL?
+
+    var FullLog: String {
+        func Contents(_ URL: URL) -> String {
+            guard let Data = try? Data(contentsOf: URL) else { return "Log file is unavailable.\n" }
+            return String(decoding: Data, as: UTF8.self)
+        }
+        var Result = "Launch log: \(LaunchLog.path)\n\n\(Contents(LaunchLog))"
+        if let DetailLog {
+            Result += "\n\nHighball / Wine log: \(DetailLog.path)\n\n\(Contents(DetailLog))"
+        }
+        return Result
+    }
+}
+
+enum GameLaunchFailure: Error { case Reported }
 
 @MainActor
 final class GameLauncher: ObservableObject {
     @Published private(set) var RunningIds: Set<UUID> = []
     @Published private(set) var ErrorMessage: String?
+    @Published private(set) var Failure: GameFailureReport?
     /// Used by Retro and other callers that only need an elapsed-time delta.
     var OnSessionEnded: ((UUID, Date, Double) -> Void)?
     /// Cumulative, replayable session progress from the detached handler.
@@ -65,10 +89,36 @@ final class GameLauncher: ObservableObject {
 
     private func Directory(for SessionId: UUID) -> URL { SessionsDirectory.appendingPathComponent(SessionId.uuidString, isDirectory: true) }
     private func StatusURL(for SessionId: UUID) -> URL { Directory(for: SessionId).appendingPathComponent("status.json") }
+    private func HandledURL(for SessionId: UUID) -> URL { Directory(for: SessionId).appendingPathComponent("handled") }
 
     private func ReadStatus(_ SessionId: UUID) -> GameHandlerStatus? {
         guard let Data = try? Data(contentsOf: StatusURL(for: SessionId)) else { return nil }
         return try? JSONDecoder().decode(GameHandlerStatus.self, from: Data)
+    }
+
+    private func ReportFailure(_ SessionId: UUID, Job: GameHandlerJob, Status: GameHandlerStatus) {
+        let Message = Status.Error ?? "Game exited with status \(Status.ExitCode ?? -1)."
+        let LaunchLog = Directory(for: SessionId).appendingPathComponent("game.log")
+        let DetailLog = Status.DetailLogPath.map { URL(fileURLWithPath: $0) }
+            ?? FindLegacyHighballLog(in: LaunchLog)
+        Failure = GameFailureReport(id: SessionId, GameName: Job.Name, Summary: Message,
+            LaunchLog: LaunchLog, DetailLog: DetailLog)
+    }
+
+    private func FindLegacyHighballLog(in LaunchLog: URL) -> URL? {
+        guard let Output = try? String(contentsOf: LaunchLog, encoding: .utf8) else { return nil }
+        let Root = Compatibility.HighballHome.appendingPathComponent("logs", isDirectory: true)
+            .resolvingSymlinksInPath().standardizedFileURL.path
+        for Line in Output.components(separatedBy: .newlines).reversed() {
+            guard let Range = Line.range(of: "log: ") else { continue }
+            let Path = Line[Range.upperBound...].trimmingCharacters(in: .whitespacesAndNewlines)
+            guard Path.hasPrefix("/") else { continue }
+            let Candidate = URL(fileURLWithPath: Path).resolvingSymlinksInPath().standardizedFileURL
+            if Candidate.path.hasPrefix(Root + "/") && FileManager.default.fileExists(atPath: Candidate.path) {
+                return Candidate
+            }
+        }
+        return nil
     }
 
     private func HandlerAlive(_ Pid: pid_t) -> Bool {
@@ -84,6 +134,7 @@ final class GameLauncher: ObservableObject {
             throw RuntimeError.Message("The game executable is missing. Choose a new executable in Game Settings.")
         }
         ErrorMessage = nil
+        Failure = nil
         let Handler = try HandlerExecutable()
         let Command = try await Compatibility.LaunchCommand(for: Game)
         var Executable = Command.Executable
@@ -134,13 +185,16 @@ final class GameLauncher: ObservableObject {
         repeat {
             if let Status = ReadStatus(SessionId) {
                 if Status.Phase == "failed" || Status.Phase == "completed" && Status.ExitCode != 0 {
+                    ReportFailure(SessionId, Job: Job, Status: Status)
                     Sessions.removeValue(forKey: SessionId)
                     RunningIds.remove(Game.Id)
-                    throw RuntimeError.Message(Status.Error ?? "\(Game.Name) exited with status \(Status.ExitCode ?? -1).")
+                    try? Data().write(to: HandledURL(for: SessionId), options: .atomic)
+                    throw GameLaunchFailure.Reported
                 }
                 if Status.Phase == "stopped" {
                     Sessions.removeValue(forKey: SessionId)
                     RunningIds.remove(Game.Id)
+                    try? Data().write(to: HandledURL(for: SessionId), options: .atomic)
                     throw RuntimeError.Message("\(Game.Name) was stopped before it opened.")
                 }
             } else if !Process.isRunning {
@@ -152,9 +206,11 @@ final class GameLauncher: ObservableObject {
             try await Task.sleep(for: .milliseconds(250))
         } while true
         if let Status = ReadStatus(SessionId), Status.Phase == "completed", Status.ObservedSeconds < 2 {
+            ReportFailure(SessionId, Job: Job, Status: Status)
             Sessions.removeValue(forKey: SessionId)
             RunningIds.remove(Game.Id)
-            throw RuntimeError.Message("\(Game.Name) closed immediately. Check its game files and launch settings.")
+            try? Data().write(to: HandledURL(for: SessionId), options: .atomic)
+            throw GameLaunchFailure.Reported
         }
     }
 
@@ -177,14 +233,16 @@ final class GameLauncher: ObservableObject {
                     ErrorMessage = "\(Job.Name): the game handler did not write a status journal."
                     Sessions.removeValue(forKey: SessionId)
                     RunningIds.remove(Job.GameId)
+                    try? Data().write(to: HandledURL(for: SessionId), options: .atomic)
                 }
                 continue
             }
             guard let StartedAt = Status.StartedAt else {
                 if Status.Phase == "failed" {
-                    ErrorMessage = "\(Job.Name): \(Status.Error ?? "the game handler could not start the game.")"
+                    ReportFailure(SessionId, Job: Job, Status: Status)
                     Sessions.removeValue(forKey: SessionId)
                     RunningIds.remove(Job.GameId)
+                    try? Data().write(to: HandledURL(for: SessionId), options: .atomic)
                 }
                 continue
             }
@@ -211,14 +269,15 @@ final class GameLauncher: ObservableObject {
             if Terminal {
                 if !ProcessedFinal.contains(SessionId) {
                     if let Summary { OnSessionSummary?(Job.GameId, Summary) }
-                    if let Message = Status.Error, Status.Phase != "stopped" {
-                        ErrorMessage = "\(Job.Name): \(Message)"
+                    if Status.Error != nil, Status.Phase != "stopped" {
+                        ReportFailure(SessionId, Job: Job, Status: Status)
                     }
                     ProcessedFinal.insert(SessionId)
                 }
                 Sessions.removeValue(forKey: SessionId)
                 RunningIds.remove(Job.GameId)
                 StoppingIds.remove(Job.GameId)
+                try? Data().write(to: HandledURL(for: SessionId), options: .atomic)
             } else {
                 RunningIds.insert(Job.GameId)
             }
@@ -232,6 +291,7 @@ final class GameLauncher: ObservableObject {
             includingPropertiesForKeys: [.isDirectoryKey], options: [.skipsHiddenFiles]) else { return }
         for Directory in Directories {
             let URL = Directory.appendingPathComponent("job.json")
+            guard !FileManager.default.fileExists(atPath: Directory.appendingPathComponent("handled").path) else { continue }
             guard let Data = try? Data(contentsOf: URL),
                   let Job = try? JSONDecoder().decode(GameHandlerJob.self, from: Data),
                   KnownGameIds.contains(Job.GameId) else { continue }

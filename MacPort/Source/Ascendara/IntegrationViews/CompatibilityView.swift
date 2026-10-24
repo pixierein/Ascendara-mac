@@ -100,9 +100,11 @@ private struct CompatibilityPanel: View {
                                 .buttonStyle(PrimaryButtonStyle())
                             Button("Download latest compatibility files") { DownloadLatest() }
                                 .buttonStyle(SecondaryButtonStyle())
-                        }.disabled(Busy || !Service.Status.HighballAvailable)
-                        if let ID = Service.DefaultEngineID {
-                            Text("Selected engine: \(ID)").font(.caption).foregroundStyle(Theme.SecondaryText)
+                        }.disabled(Busy || !Service.Status.HighballAvailable || !Store.RunningIds.isEmpty)
+                        if let ID = Service.Status.BottleEngines["ascendara"] {
+                            Text("Active engine: \(ID)").font(.caption).foregroundStyle(Theme.SecondaryText)
+                        } else if let ID = Service.DefaultEngineID {
+                            Text("Bundled engine: \(ID)").font(.caption).foregroundStyle(Theme.SecondaryText)
                         }
                         if let Error = Service.Status.ErrorMessage { Notice(Message: Error, Symbol: "exclamationmark.triangle") }
                         HStack {
@@ -120,6 +122,8 @@ private struct CompatibilityPanel: View {
                                 TextField("Bottle name", text: $Bottle).textFieldStyle(.roundedBorder)
                                 Button("Create bottle") { CreateBottle() }.disabled(Busy || Bottle.isEmpty || Engine.isEmpty)
                             }
+                            Button("Use engine for bottle") { SwitchBottleEngine() }
+                                .disabled(Busy || Engine.isEmpty || !Service.Status.Bottles.contains(Bottle) || !Store.RunningIds.isEmpty)
                             Button("Review D3DMetal license…") { ShowingLicense = true }.disabled(Busy || Service.D3DMetalLicenseText == nil || Engine.isEmpty)
                         }
                         Text(Service.Status.Bottles.isEmpty ? "No bottles detected." : "Bottles: " + Service.Status.Bottles.joined(separator: ", ")).font(.caption).foregroundStyle(Theme.SecondaryText)
@@ -167,7 +171,9 @@ private struct CompatibilityPanel: View {
         Busy = true
         Task {
             await Service.Detect()
-            if !Service.Status.Engines.contains(Engine) { Engine = Service.Status.Engines.first ?? "" }
+            if !Service.Status.Engines.contains(Engine) {
+                Engine = Service.Status.BottleEngines["ascendara"] ?? Service.Status.Engines.first ?? ""
+            }
             Busy = false
         }
     }
@@ -220,6 +226,17 @@ private struct CompatibilityPanel: View {
         }
     }
 
+    private func SwitchBottleEngine() {
+        Busy = true
+        Task {
+            do {
+                try await Service.SetBottleEngine(Name: Bottle, Engine: Engine)
+                Result = "Bottle ‘\(Bottle)’ now uses \(Engine)."
+            } catch { Store.Report(error) }
+            Busy = false
+        }
+    }
+
     private func AutoSetup() {
         Busy = true
         Result = nil
@@ -231,7 +248,7 @@ private struct CompatibilityPanel: View {
                 guard Service.IsHighballReady else {
                     throw RuntimeError.Message("Setup finished, but the game environment could not be verified.")
                 }
-                Engine = Service.DefaultEngineID ?? Service.Status.Engines.first ?? ""
+                Engine = Service.Status.BottleEngines["ascendara"] ?? Service.DefaultEngineID ?? Service.Status.Engines.first ?? ""
                 Result = "Compatibility files and the game environment are ready."
             } catch { Failure = error.localizedDescription }
             Busy = false
