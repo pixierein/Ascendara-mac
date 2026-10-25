@@ -39,6 +39,9 @@ struct LibraryGame: Codable, Identifiable, Equatable {
     var HighballBottle = "ascendara"
     var IsManaged = false
     var ManagedFilesPath: String?
+    var InstalledSizeBytes: Int64?
+    var SizeMeasuredAt: Date?
+    var AutomaticallyUpdate = false
     var id: UUID { Id }
     var ExecutableURL: URL { URL(fileURLWithPath: ExecutablePath) }
     var DirectoryURL: URL { URL(fileURLWithPath: DirectoryPath, isDirectory: true) }
@@ -48,6 +51,7 @@ struct LibraryGame: Codable, Identifiable, Equatable {
     private enum CodingKeys: String, CodingKey {
         case Id, Name, CatalogId, Version, DirectoryPath, ExecutablePath, ImageURL, AddedAt, LastPlayedAt, LastSession, LastSessionId, LastSessionRecordedSeconds, RecordedSessionSecondsById, PlayTimeSeconds, LaunchCount, Completed
         case Favorite, Notes, Collection, SaveDirectory, LaunchArguments, LaunchMode, WinePrefixPath, Renderer, HighballBottle, IsManaged, ManagedFilesPath
+        case InstalledSizeBytes, SizeMeasuredAt, AutomaticallyUpdate
     }
 }
 
@@ -81,6 +85,9 @@ extension LibraryGame {
         HighballBottle = try Values.decodeIfPresent(String.self, forKey: .HighballBottle) ?? "ascendara"
         IsManaged = try Values.decodeIfPresent(Bool.self, forKey: .IsManaged) ?? false
         ManagedFilesPath = try Values.decodeIfPresent(String.self, forKey: .ManagedFilesPath)
+        InstalledSizeBytes = try Values.decodeIfPresent(Int64.self, forKey: .InstalledSizeBytes)
+        SizeMeasuredAt = try Values.decodeIfPresent(Date.self, forKey: .SizeMeasuredAt)
+        AutomaticallyUpdate = try Values.decodeIfPresent(Bool.self, forKey: .AutomaticallyUpdate) ?? false
     }
 }
 
@@ -88,8 +95,6 @@ enum DownloadState: String, Codable {
     case Queued, Downloading, Paused, Completed, Extracting, Extracted, Failed, Cancelled
 }
 
-/// Browser cookies are handed to the detached worker as a scoped curl cookie
-/// jar, never as a raw Cookie header that could follow cross-host redirects.
 struct DownloadCookie: Codable {
     var Name: String
     var Value: String
@@ -115,6 +120,21 @@ struct DownloadCookie: Codable {
     }
 }
 
+struct InstallationPlan: Codable, Equatable {
+    var ReplaceGameId: UUID
+    var DestinationPath: String
+    var KeepPlaytime = true
+    var KeepAchievements = true
+}
+
+struct ReinstallRequest: Identifiable {
+    let Id = UUID()
+    var id: UUID { Id }
+    let Game: Game
+    let Installed: LibraryGame
+    let Link: String
+}
+
 struct DownloadItem: Codable, Identifiable, Equatable {
     var Id = UUID()
     var Name: String
@@ -133,6 +153,9 @@ struct DownloadItem: Codable, Identifiable, Equatable {
     var ExtractedPath: String?
     var ResumeData: Data?
     var RequestHeaders: [String: String] = [:]
+    var EstimatedBytes: Int64?
+    var Installation: InstallationPlan?
+    var ImportCompleted = false
     var id: UUID { Id }
     var Progress: Double { TotalBytes > 0 ? min(1, max(0, Double(ReceivedBytes) / Double(TotalBytes))) : 0 }
     var FileURL: URL { DestinationDirectory.appendingPathComponent(FileName) }
@@ -140,7 +163,7 @@ struct DownloadItem: Codable, Identifiable, Equatable {
 
     private enum CodingKeys: String, CodingKey {
         case Id, Name, SourceURL, DestinationDirectory, FileName, State, ReceivedBytes, TotalBytes, BytesPerSecond
-        case ErrorMessage, CreatedAt, CatalogId, BatchId, Version, ExtractedPath, ResumeData, RequestHeaders
+        case ErrorMessage, CreatedAt, CatalogId, BatchId, Version, ExtractedPath, ResumeData, RequestHeaders, EstimatedBytes, Installation, ImportCompleted
     }
 }
 
@@ -164,6 +187,9 @@ extension DownloadItem {
         ExtractedPath = try Values.decodeIfPresent(String.self, forKey: .ExtractedPath)
         ResumeData = try Values.decodeIfPresent(Data.self, forKey: .ResumeData)
         RequestHeaders = try Values.decodeIfPresent([String: String].self, forKey: .RequestHeaders) ?? [:]
+        EstimatedBytes = try Values.decodeIfPresent(Int64.self, forKey: .EstimatedBytes)
+        Installation = try Values.decodeIfPresent(InstallationPlan.self, forKey: .Installation)
+        ImportCompleted = try Values.decodeIfPresent(Bool.self, forKey: .ImportCompleted) ?? false
     }
 }
 

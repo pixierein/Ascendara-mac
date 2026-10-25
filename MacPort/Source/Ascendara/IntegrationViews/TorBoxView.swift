@@ -20,41 +20,41 @@ struct TorBoxView: View {
         .task { await Refresh() }
         .onChange(of: Destination) { _, _ in Task { await Refresh() } }
         .confirmationDialog("Delete this TorBox download?", isPresented: Binding(get: { PendingDeletion != nil }, set: { if !$0 { PendingDeletion = nil } })) {
-            Button("Delete from TorBox", role: .destructive) {
+            Button(I18n.T("Delete from TorBox"), role: .destructive) {
                 if let Item = PendingDeletion { Run { try await TorBoxService.Control(Item: Item, Operation: "delete", APIKey: Store.Settings.TorBoxAPIKey) } }
                 PendingDeletion = nil
             }
-        } message: { Text("This removes the selected download from your cloud account.") }
+        } message: { Text(I18n.T("This removes the selected download from your cloud account.")) }
     }
 
     private var DesktopBody: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
-                PageHeading(Title: "TorBox & torrents", Subtitle: "Manage cloud downloads and your qBittorrent queue.")
-                Picker("Download service", selection: $Destination) {
-                    Text("TorBox").tag("TorBox")
-                    Text("qBittorrent").tag("qBittorrent")
+                PageHeading(Title: I18n.T("TorBox & torrents"), Subtitle: I18n.T("Manage cloud downloads and your qBittorrent queue."))
+                Picker(I18n.T("Download service"), selection: $Destination) {
+                    Text(I18n.T("TorBox")).tag("TorBox")
+                    Text(I18n.T("qBittorrent")).tag("qBittorrent")
                 }.pickerStyle(.segmented).frame(width: 310)
                 if Destination == "TorBox", Store.Settings.TorBoxAPIKey.isEmpty {
-                    EmptyPanel(Symbol: "key", Title: "Connect TorBox", Message: "Add your TorBox API key in Preferences to see your cloud downloads.", ActionTitle: "Open Preferences", Action: { Store.Route = .Settings })
+                    EmptyPanel(Symbol: "key", Title: I18n.T("Connect TorBox"), Message: I18n.T("Add your TorBox API key in Preferences to see your cloud downloads."), ActionTitle: I18n.T("Open Preferences"), Action: { Store.Route = .Settings })
                 } else {
                     Panel {
                         HStack(spacing: 12) {
                             TextField(Destination == "TorBox" ? "Paste a download URL or magnet link" : "Paste a magnet or torrent URL", text: $Link)
                                 .textFieldStyle(.roundedBorder).onSubmit { Add() }
-                            Button("Add download") { Add() }.buttonStyle(PrimaryButtonStyle()).disabled(IsBusy || Link.isEmpty)
-                            IconButton(Symbol: "arrow.clockwise", Help: "Refresh downloads", Action: { Task { await Refresh() } }).disabled(IsBusy)
+                            Button(I18n.T("Add download")) { Add() }.buttonStyle(PrimaryButtonStyle()).disabled(IsBusy || Link.isEmpty)
+                            IconButton(Symbol: "arrow.clockwise", Help: I18n.T("Refresh downloads"), Action: { Task { await Refresh() } }).disabled(IsBusy)
                         }
                     }
                     if IsBusy { ProgressView().frame(maxWidth: .infinity) }
                     if Destination == "TorBox" {
                         if Items.isEmpty && !IsBusy {
-                            EmptyPanel(Symbol: "server.rack", Title: "No cloud downloads", Message: "Add a link above to create a download on your TorBox account.")
+                            EmptyPanel(Symbol: "server.rack", Title: I18n.T("No cloud downloads"), Message: I18n.T("Add a link above to create a download on your TorBox account."))
                         }
                         ForEach(Items) { Item in TorBoxRow(Item) }
                     } else {
-                        Notice(Message: "Enable qBittorrent’s Web UI and configure its address and credentials in Preferences. Files are saved by the qBittorrent host.")
-                        if Torrents.isEmpty && !IsBusy { EmptyPanel(Symbol: "network", Title: "No torrents", Message: "Add a magnet link or refresh your connected qBittorrent client.") }
+                        Notice(Message: I18n.T("Enable qBittorrent’s Web UI and configure its address and credentials in Preferences. Files are saved by the qBittorrent host."))
+                        if Torrents.isEmpty && !IsBusy { EmptyPanel(Symbol: "network", Title: I18n.T("No torrents"), Message: I18n.T("Add a magnet link or refresh your connected qBittorrent client.")) }
                         ForEach(Torrents) { Item in TorrentRow(Item) }
                     }
                 }
@@ -65,25 +65,25 @@ struct TorBoxView: View {
     private var TVBody: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 30 * Scale) {
-                TVPageHeading(Title: "Cloud downloads", Subtitle: "Your TorBox and qBittorrent queues, ready from the couch.")
+                TVPageHeading(Title: I18n.T("Cloud downloads"), Subtitle: I18n.T("Your TorBox and qBittorrent queues, ready from the couch."))
                 TVIntegrationTabs(Titles: ["TorBox", "qBittorrent"], Selection: $Destination)
                 if Destination == "TorBox", Store.Settings.TorBoxAPIKey.isEmpty {
                     TVPanel {
                         VStack(alignment: .leading, spacing: 26 * Scale) {
-                            TVEmptyState(Symbol: "server.rack", Title: "Connect your TorBox account", Message: "Add your API key in Settings to see cloud downloads and save ready files to this Mac.")
-                            Button("Open Settings") { Store.CurrentRoute = .Settings }.buttonStyle(TVButtonStyle(Prominent: true))
+                            TVEmptyState(Symbol: "server.rack", Title: I18n.T("Connect your TorBox account"), Message: I18n.T("Add your API key in Settings to see cloud downloads and save ready files to this Mac."))
+                            Button(I18n.T("Open Settings")) { Store.CurrentRoute = .Settings }.buttonStyle(TVButtonStyle(Prominent: true))
                         }
                     }
                 } else {
                     TVPanel {
                         VStack(alignment: .leading, spacing: 22 * Scale) {
-                            Text("Add a download").font(.system(size: 29 * Scale, weight: .semibold))
+                            Text(I18n.T("Add a download")).font(.system(size: 29 * Scale, weight: .semibold))
                             TextField(Destination == "TorBox" ? "Download URL or magnet link" : "Magnet link or torrent URL", text: $Link)
                                 .modifier(TVIntegrationFieldStyle()).onSubmit { Add() }
                             HStack(spacing: 16 * Scale) {
-                                Button { Add() } label: { Label("Add download", systemImage: "plus") }
+                                Button { Add() } label: { Label(I18n.T("Add download"), systemImage: "plus") }
                                     .buttonStyle(TVButtonStyle(Prominent: true)).disabled(IsBusy || Link.isEmpty)
-                                Button { Task { await Refresh() } } label: { Label("Refresh", systemImage: "arrow.clockwise") }
+                                Button { Task { await Refresh() } } label: { Label(I18n.T("Refresh"), systemImage: "arrow.clockwise") }
                                     .buttonStyle(TVButtonStyle()).disabled(IsBusy)
                                 if IsBusy { ProgressView().controlSize(.large) }
                             }
@@ -91,18 +91,18 @@ struct TorBoxView: View {
                     }
                     if Destination == "TorBox" {
                         if Items.isEmpty && !IsBusy {
-                            TVEmptyState(Symbol: "icloud.and.arrow.down", Title: "Your queue is clear", Message: "Add a link to start a cloud download on your TorBox account.")
+                            TVEmptyState(Symbol: "icloud.and.arrow.down", Title: I18n.T("Your queue is clear"), Message: I18n.T("Add a link to start a cloud download on your TorBox account."))
                         }
                         ForEach(Items) { Item in TVTorBoxRow(Item) }
                     } else {
                         HStack(spacing: 22 * Scale) {
-                            Text("qBittorrent saves files on its host. Configure its Web UI connection in Settings.")
+                            Text(I18n.T("qBittorrent saves files on its host. Configure its Web UI connection in Settings."))
                                 .font(.system(size: 20 * Scale)).foregroundStyle(TVStyle.Secondary)
                             Spacer(minLength: 0)
-                            Button("Connection settings") { Store.CurrentRoute = .Settings }.buttonStyle(TVButtonStyle())
+                            Button(I18n.T("Connection settings")) { Store.CurrentRoute = .Settings }.buttonStyle(TVButtonStyle())
                         }
                         if Torrents.isEmpty && !IsBusy {
-                            TVEmptyState(Symbol: "network", Title: "No torrents in the queue", Message: "Add a magnet link or refresh your connected qBittorrent client.")
+                            TVEmptyState(Symbol: "network", Title: I18n.T("No torrents in the queue"), Message: I18n.T("Add a magnet link or refresh your connected qBittorrent client."))
                         }
                         ForEach(Torrents) { Item in TVTorrentRow(Item) }
                     }
@@ -119,17 +119,17 @@ struct TorBoxView: View {
                         .font(.system(size: 36 * Scale)).foregroundStyle(TVStyle.Accent)
                     VStack(alignment: .leading, spacing: 10 * Scale) {
                         Text(Item.Name).font(.system(size: 29 * Scale, weight: .semibold)).lineLimit(2)
-                        Text("\(Item.State.capitalized) · \(ByteCountFormatter.string(fromByteCount: Item.Size, countStyle: .file))")
+                        Text(I18n.Interpolated("\(Item.State.capitalized) · \(ByteCountFormatter.string(fromByteCount: Item.Size, countStyle: .file))"))
                             .font(.system(size: 21 * Scale)).foregroundStyle(TVStyle.Secondary)
                     }
                     Spacer(minLength: 0)
-                    Text("\(Int(min(max(Item.Progress, 0), 1) * 100))%")
+                    Text(I18n.Interpolated("\(Int(min(max(Item.Progress, 0), 1) * 100))%"))
                         .font(.system(size: 32 * Scale, weight: .medium, design: .rounded)).monospacedDigit()
                 }
                 ProgressView(value: min(max(Item.Progress, 0), 1)).tint(TVStyle.Accent)
                 HStack(spacing: 16 * Scale) {
                     if Item.Ready {
-                        Button("Download to this Mac") {
+                        Button(I18n.T("Download to this Mac")) {
                             Run {
                                 let URL = try await TorBoxService.DirectLink(Item: Item, APIKey: Store.Settings.TorBoxAPIKey)
                                 Store.StartDirectDownload(Name: Item.Name, Link: URL.absoluteString)
@@ -140,7 +140,7 @@ struct TorBoxView: View {
                             Run { try await TorBoxService.Control(Item: Item, Operation: Item.State.lowercased().contains("paused") ? "resume" : "pause", APIKey: Store.Settings.TorBoxAPIKey) }
                         }.buttonStyle(TVButtonStyle(Prominent: true))
                     }
-                    Button { PendingDeletion = Item } label: { Label("Remove from cloud", systemImage: "trash") }
+                    Button { PendingDeletion = Item } label: { Label(I18n.T("Remove from cloud"), systemImage: "trash") }
                         .buttonStyle(TVButtonStyle())
                 }
             }
@@ -152,17 +152,17 @@ struct TorBoxView: View {
             VStack(alignment: .leading, spacing: 22 * Scale) {
                 Text(Item.Name).font(.system(size: 29 * Scale, weight: .semibold)).lineLimit(2)
                 HStack {
-                    Text("\(Item.State) · \(ByteCountFormatter.string(fromByteCount: Item.Speed, countStyle: .file))/s")
+                    Text(I18n.Interpolated("\(Item.State) · \(ByteCountFormatter.string(fromByteCount: Item.Speed, countStyle: .file))/s"))
                     Spacer()
-                    Text("\(Int(min(max(Item.Progress, 0), 1) * 100))%").monospacedDigit()
+                    Text(I18n.Interpolated("\(Int(min(max(Item.Progress, 0), 1) * 100))%")).monospacedDigit()
                 }.font(.system(size: 21 * Scale)).foregroundStyle(TVStyle.Secondary)
                 ProgressView(value: min(max(Item.Progress, 0), 1)).tint(TVStyle.Accent)
                 HStack(spacing: 16 * Scale) {
-                    Button("Resume") { Run { try await TorrentService.Control(Id: Item.Id, Operation: "start", Settings: Store.Settings) } }
+                    Button(I18n.T("Resume")) { Run { try await TorrentService.Control(Id: Item.Id, Operation: "start", Settings: Store.Settings) } }
                         .buttonStyle(TVButtonStyle(Prominent: true))
-                    Button("Pause") { Run { try await TorrentService.Control(Id: Item.Id, Operation: "stop", Settings: Store.Settings) } }
+                    Button(I18n.T("Pause")) { Run { try await TorrentService.Control(Id: Item.Id, Operation: "stop", Settings: Store.Settings) } }
                         .buttonStyle(TVButtonStyle())
-                    Button("Remove from queue") { Run { try await TorrentService.Control(Id: Item.Id, Operation: "delete", Settings: Store.Settings) } }
+                    Button(I18n.T("Remove from queue")) { Run { try await TorrentService.Control(Id: Item.Id, Operation: "delete", Settings: Store.Settings) } }
                         .buttonStyle(TVButtonStyle())
                 }
             }
@@ -176,11 +176,11 @@ struct TorBoxView: View {
                     Image(systemName: Item.Kind == "torrents" ? "network" : "cloud").foregroundStyle(Theme.Accent)
                     VStack(alignment: .leading, spacing: 4) {
                         Text(Item.Name).font(.headline).lineLimit(2)
-                        Text("\(Item.State.capitalized) · \(ByteCountFormatter.string(fromByteCount: Item.Size, countStyle: .file))").font(.caption).foregroundStyle(Theme.SecondaryText)
+                        Text(I18n.Interpolated("\(Item.State.capitalized) · \(ByteCountFormatter.string(fromByteCount: Item.Size, countStyle: .file))")).font(.caption).foregroundStyle(Theme.SecondaryText)
                     }
                     Spacer()
                     if Item.Ready {
-                        Button("Download to Mac") {
+                        Button(I18n.T("Download to Mac")) {
                             Run {
                                 let URL = try await TorBoxService.DirectLink(Item: Item, APIKey: Store.Settings.TorBoxAPIKey)
                                 Store.StartDirectDownload(Name: Item.Name, Link: URL.absoluteString)
@@ -191,7 +191,7 @@ struct TorBoxView: View {
                             Run { try await TorBoxService.Control(Item: Item, Operation: Item.State.lowercased().contains("paused") ? "resume" : "pause", APIKey: Store.Settings.TorBoxAPIKey) }
                         }.buttonStyle(SecondaryButtonStyle())
                     }
-                    IconButton(Symbol: "trash", Help: "Delete cloud download", Action: { PendingDeletion = Item })
+                    IconButton(Symbol: "trash", Help: I18n.T("Delete cloud download"), Action: { PendingDeletion = Item })
                 }
                 ProgressView(value: Item.Progress).tint(Theme.Accent)
             }
@@ -204,12 +204,12 @@ struct TorBoxView: View {
                 HStack {
                     VStack(alignment: .leading, spacing: 5) {
                         Text(Item.Name).font(.headline).lineLimit(2)
-                        Text("\(Item.State) · \(ByteCountFormatter.string(fromByteCount: Item.Speed, countStyle: .file))/s").font(.caption).foregroundStyle(Theme.SecondaryText)
+                        Text(I18n.Interpolated("\(Item.State) · \(ByteCountFormatter.string(fromByteCount: Item.Speed, countStyle: .file))/s")).font(.caption).foregroundStyle(Theme.SecondaryText)
                     }
                     Spacer()
-                    Button("Resume") { Run { try await TorrentService.Control(Id: Item.Id, Operation: "start", Settings: Store.Settings) } }.buttonStyle(SecondaryButtonStyle())
-                    Button("Pause") { Run { try await TorrentService.Control(Id: Item.Id, Operation: "stop", Settings: Store.Settings) } }.buttonStyle(SecondaryButtonStyle())
-                    IconButton(Symbol: "trash", Help: "Remove torrent, keep downloaded files", Action: {
+                    Button(I18n.T("Resume")) { Run { try await TorrentService.Control(Id: Item.Id, Operation: "start", Settings: Store.Settings) } }.buttonStyle(SecondaryButtonStyle())
+                    Button(I18n.T("Pause")) { Run { try await TorrentService.Control(Id: Item.Id, Operation: "stop", Settings: Store.Settings) } }.buttonStyle(SecondaryButtonStyle())
+                    IconButton(Symbol: "trash", Help: I18n.T("Remove torrent, keep downloaded files"), Action: {
                         Run { try await TorrentService.Control(Id: Item.Id, Operation: "delete", Settings: Store.Settings) }
                     })
                 }

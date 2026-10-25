@@ -64,7 +64,7 @@ actor CatalogService {
         do {
             var Request = URLRequest(url: Address, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 60)
             Request.setValue("application/json", forHTTPHeaderField: "Accept")
-            Request.setValue("AscendaraNative/1.0", forHTTPHeaderField: "User-Agent")
+            Request.setValue("AscendaraNative/" + AppVersion.Current, forHTTPHeaderField: "User-Agent")
             if !Force, let ETag = Cached?.ETag { Request.setValue(ETag, forHTTPHeaderField: "If-None-Match") }
             let (Data, Response) = try await Session.data(for: Request)
             guard let Response = Response as? HTTPURLResponse else { throw CatalogError.InvalidResponse }
@@ -411,9 +411,6 @@ actor RatingService {
 }
 
 
-/// Native port of the current upstream community-index/local-refresh modules.
-/// The old Python scraper is no longer launched by the original application;
-/// its public index is published by the Ascendara API.
 actor LocalRefreshService {
     struct Result: Sendable {
         let Data: Data
@@ -470,8 +467,6 @@ actor LocalRefreshService {
 
     func Prefetch(Games: [Game]) {
         guard PrefetchTask == nil else { return }
-        // The visible Home shelves need only a small warm cache. Fetching
-        // hundreds of covers here competes with the UI and active downloads.
         let Popular = Games.sorted { ($0.Weight ?? 0) > ($1.Weight ?? 0) }.prefix(24)
         var Seen: Set<String> = []
         let IDs = Popular.compactMap(\.ImageId).filter {
@@ -512,7 +507,7 @@ actor LocalRefreshService {
             var Request = URLRequest(url: URL(string: "https://api.ascendara.app/json/v2/games")!,
                                      cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 60)
             Request.setValue("application/json", forHTTPHeaderField: "Accept")
-            Request.setValue("AscendaraNative/1.0", forHTTPHeaderField: "User-Agent")
+            Request.setValue("AscendaraNative/" + AppVersion.Current, forHTTPHeaderField: "User-Agent")
             if !Force, Untouched, Previous != nil, let ETag = State?.ETag {
                 Request.setValue(ETag, forHTTPHeaderField: "If-None-Match")
             }
@@ -534,8 +529,6 @@ actor LocalRefreshService {
             }
             WriteProgress(status: "running", phase: "saving", progress: 0.8,
                           lastSuccessfulTimestamp: Previous?.RefreshedAt.timeIntervalSince1970)
-            // Data.write(.atomic) creates and renames a sibling file. A failed
-            // download or decode never replaces the last usable index.
             try Data.write(to: IndexFile, options: .atomic)
             let Modified = try ModificationDate(of: IndexFile)
             try SaveState(SyncState(ETag: HTTP.value(forHTTPHeaderField: "ETag"),

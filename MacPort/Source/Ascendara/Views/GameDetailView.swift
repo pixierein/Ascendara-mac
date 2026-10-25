@@ -28,6 +28,9 @@ struct GameDetailView: View {
     private var Facts: [(String, String, String)] {
         var Items: [(String, String, String)] = []
         if let Size = Game.Size { Items.append(("DOWNLOAD SIZE", Size, "externaldrive")) }
+        if let Size = Store.LibraryMatch(Game)?.InstalledSizeBytes {
+            Items.append(("INSTALLED SIZE", ByteCountFormatter.string(fromByteCount: Size, countStyle: .file), "internaldrive"))
+        }
         if let Version = Game.Version { Items.append(("VERSION", Version, "tag")) }
         if let Updated = Game.LatestUpdate { Items.append(("LAST UPDATED", Updated, "calendar")) }
         if let Date = Details?.ReleaseDate { Items.append(("RELEASED", Date, "calendar.badge.clock")) }
@@ -69,7 +72,7 @@ struct GameDetailView: View {
         .foregroundStyle(Theme.Foreground)
         .overlay(alignment: .topLeading) {
             Button { Store.SelectedGame = nil } label: {
-                Label("Back", systemImage: "chevron.left")
+                Label(I18n.T("Back"), systemImage: "chevron.left")
                     .font(.system(size: 12, weight: .semibold))
                     .padding(.horizontal, 14).frame(height: 38)
                     .background(Theme.Card, in: RoundedRectangle(cornerRadius: 9))
@@ -77,7 +80,7 @@ struct GameDetailView: View {
             }
             .buttonStyle(.plain)
             .keyboardShortcut(.escape, modifiers: [])
-            .accessibilityLabel("Back to games")
+            .accessibilityLabel(I18n.T("Back to games"))
             .padding(.leading, 30).padding(.top, 15)
             .zIndex(10)
         }
@@ -102,11 +105,11 @@ struct GameDetailView: View {
             }
             .buttonStyle(SecondaryButtonStyle())
             ShareLink(item: Game.Name) {
-                Label("Share", systemImage: "square.and.arrow.up")
+                Label(I18n.T("Share"), systemImage: "square.and.arrow.up")
             }
             .buttonStyle(SecondaryButtonStyle())
             Button { Store.OpenExternal("https://github.com/pixierein/ascendara/issues/new") } label: {
-                Label("Report an issue", systemImage: "flag")
+                Label(I18n.T("Report an issue"), systemImage: "flag")
             }
             .buttonStyle(SecondaryButtonStyle())
         }
@@ -135,7 +138,7 @@ struct GameDetailView: View {
                                     Image(systemName: "checkmark.shield.fill")
                                         .font(.system(size: 17))
                                         .foregroundStyle(.white.opacity(0.9))
-                                        .accessibilityLabel("Verified catalogue entry")
+                                        .accessibilityLabel(I18n.T("Verified catalogue entry"))
                                 }
                             }
                             HStack(spacing: 8) {
@@ -184,7 +187,7 @@ struct GameDetailView: View {
     private func HeroTag(_ Title: String, Symbol: String? = nil) -> some View {
         HStack(spacing: 4) {
             if let Symbol { Image(systemName: Symbol) }
-            Text(Title).lineLimit(1)
+            Text(I18n.T(Title)).lineLimit(1)
         }
         .font(.system(size: 11, weight: .medium))
         .padding(.horizontal, 9)
@@ -195,7 +198,7 @@ struct GameDetailView: View {
     private var About: some View {
         Panel(Padding: 24) {
             VStack(alignment: .leading, spacing: 18) {
-                Text("About This Game").font(.system(size: 21, weight: .semibold))
+                Text(I18n.T("About This Game")).font(.system(size: 21, weight: .semibold))
                 if Loading { ProgressView().controlSize(.small) }
                 Text(Details?.Description ?? Details?.Summary ?? Game.Description ?? "No description is available for this game.")
                     .font(.system(size: 14))
@@ -204,7 +207,7 @@ struct GameDetailView: View {
                     .textSelection(.enabled)
                     .fixedSize(horizontal: false, vertical: true)
                 if let Website = Details?.WebsiteURL {
-                    Button("Official website ↗") { Store.OpenExternal(Website.absoluteString) }
+                    Button(I18n.T("Official website ↗")) { Store.OpenExternal(Website.absoluteString) }
                         .buttonStyle(MotionButtonStyle())
                         .foregroundStyle(Theme.Accent)
                 }
@@ -254,7 +257,7 @@ struct GameDetailView: View {
     }
 
     private func DetailLabel(_ Title: String) -> some View {
-        Text(Title)
+        Text(I18n.T(Title))
             .font(.system(size: 10, weight: .semibold))
             .foregroundStyle(Theme.SecondaryText)
     }
@@ -262,14 +265,14 @@ struct GameDetailView: View {
     private func DetailMetadata(_ Title: String, _ Value: String) -> some View {
         VStack(alignment: .leading, spacing: 5) {
             DetailLabel(Title)
-            Text(Value).font(.system(size: 12)).textSelection(.enabled)
+            Text(I18n.T(Value)).font(.system(size: 12)).textSelection(.enabled)
         }
     }
 
     private var CompatibilityPanel: some View {
         Panel(Padding: 20) {
             VStack(alignment: .leading, spacing: 12) {
-                Label("Mac compatibility", systemImage: "desktopcomputer")
+                Label(I18n.T("Mac compatibility"), systemImage: "desktopcomputer")
                     .font(.system(size: 15, weight: .semibold))
                 if let Report = Store.MacCompatibility(for: Game) {
                     Label(Report.Label, systemImage: Report.IsPrediction ? "questionmark.circle.fill" : "checkmark.circle.fill")
@@ -286,14 +289,14 @@ struct GameDetailView: View {
                         .font(.system(size: 11))
                         .foregroundStyle(Theme.SecondaryText)
                         .fixedSize(horizontal: false, vertical: true)
-                    Button("View compatibility source ↗") {
+                    Button(I18n.T("View compatibility source ↗")) {
                         Store.OpenExternal(Report.SourceURL.absoluteString)
                     }
                     .buttonStyle(MotionButtonStyle())
                     .font(.system(size: 11))
                     .foregroundStyle(Theme.Accent)
                     if Report.IsPrediction {
-                        Button("How this is estimated ↗") {
+                        Button(I18n.T("How this is estimated ↗")) {
                             Store.OpenExternal(MacCompatibility.AttributionURL.absoluteString)
                         }
                         .buttonStyle(MotionButtonStyle())
@@ -301,9 +304,9 @@ struct GameDetailView: View {
                         .foregroundStyle(Theme.Accent)
                     }
                 } else {
-                    Text("No Mac compatibility report yet")
+                    Text(I18n.T("No Mac compatibility report yet"))
                         .font(.system(size: 12, weight: .medium))
-                    Text("Compatibility depends on the game and runtime. Check community reports before downloading.")
+                    Text(I18n.T("Compatibility depends on the game and runtime. Check community reports before downloading."))
                         .font(.system(size: 11))
                         .foregroundStyle(Theme.SecondaryText)
                         .fixedSize(horizontal: false, vertical: true)
@@ -315,10 +318,10 @@ struct GameDetailView: View {
     private var DownloadPanel: some View {
         Panel(Padding: 20) {
             VStack(alignment: .leading, spacing: 15) {
-                Label("Download and play", systemImage: "bolt.fill")
+                Label(I18n.T("Download and play"), systemImage: "bolt.fill")
                     .font(.system(size: 17, weight: .semibold))
                 if let Installed = Store.LibraryMatch(Game) {
-                    Label("In your library", systemImage: "checkmark.circle.fill")
+                    Label(I18n.T("In your library"), systemImage: "checkmark.circle.fill")
                         .font(.system(size: 12, weight: .medium))
                         .foregroundStyle(.green)
                     let Running = Store.IsRunning(Installed)
@@ -332,42 +335,43 @@ struct GameDetailView: View {
                     }
                     .buttonStyle(PrimaryButtonStyle())
                     .disabled(Store.BusyGameIds.contains(Installed.Id) || (!Running && !Installed.IsInstalled))
-                    Button("Show game files") { Store.RevealGame(Installed) }
+                    Button(I18n.T("Show game files")) { Store.RevealGame(Installed) }
+                    Button(I18n.T("Reinstall…")) { Store.RequestReinstall(Installed) }.disabled(Running)
                         .buttonStyle(SecondaryButtonStyle())
                     if !Installed.IsInstalled {
-                        Text("Game file missing. Update its location in Library.")
+                        Text(I18n.T("Game file missing. Update its location in Library."))
                             .font(.system(size: 11))
                             .foregroundStyle(Theme.SecondaryText)
                     }
                     Divider()
                 } else {
-                    Button("Already installed? Add to library…") { Store.ImportGame(For: Game) }
+                    Button(I18n.T("Already installed? Add to library…")) { Store.ImportGame(For: Game) }
                         .buttonStyle(MotionButtonStyle())
                         .font(.system(size: 11))
                         .foregroundStyle(Theme.Accent)
                 }
                 if Providers.isEmpty {
-                    Text("No catalogue download links are available for this game.")
+                    Text(I18n.T("No catalogue download links are available for this game."))
                         .font(.system(size: 12))
                         .foregroundStyle(Theme.SecondaryText)
                 } else {
                     VStack(alignment: .leading, spacing: 9) {
                         DetailLabel("DOWNLOAD SOURCE")
-                        Picker("Download source", selection: $SelectedProvider) {
+                        Picker(I18n.T("Download source"), selection: $SelectedProvider) {
                             ForEach(Providers, id: \.self) { Provider in
                                 Text(Self.ProviderDisplayName(Provider)).tag(Provider)
                             }
                         }
                         .labelsHidden()
                         if Providers.count == 1 {
-                            Text("The current index lists one mirror for this game. More mirrors may be listed on its source page.")
+                            Text(I18n.T("The current index lists one mirror for this game. More mirrors may be listed on its source page."))
                                 .font(.system(size: 11))
                                 .foregroundStyle(Theme.SecondaryText)
                         }
                         if Links.count > 1 {
-                            Picker("Download link", selection: $SelectedLink) {
+                            Picker(I18n.T("Download link"), selection: $SelectedLink) {
                                 ForEach(Array(Links.enumerated()), id: \.offset) { Index, Link in
-                                    Text("Link \(Index + 1)").tag(Link)
+                                    Text(I18n.Interpolated("Link \(Index + 1)")).tag(Link)
                                 }
                             }
                             .labelsHidden()
@@ -377,9 +381,9 @@ struct GameDetailView: View {
                         HStack(spacing: 8) {
                             if Store.ResolvingGameIds.contains(Game.Id) {
                                 ProgressView().controlSize(.small)
-                                Text("Preparing download…")
+                                Text(I18n.T("Preparing download…"))
                             } else {
-                                Label("Download Now", systemImage: "arrow.down.circle")
+                                Label(I18n.T("Download Now"), systemImage: "arrow.down.circle")
                             }
                         }.frame(maxWidth: .infinity)
                     }
@@ -387,14 +391,14 @@ struct GameDetailView: View {
                     .disabled(SelectedLink.isEmpty || Store.ResolvingGameIds.contains(Game.Id))
                 }
                 if let SourceURL = Game.SourceURL {
-                    Button("View original game page ↗") { Store.OpenExternal(SourceURL.absoluteString) }
+                    Button(I18n.T("View original game page ↗")) { Store.OpenExternal(SourceURL.absoluteString) }
                         .buttonStyle(MotionButtonStyle())
                         .font(.system(size: 11))
                         .foregroundStyle(Theme.Accent)
                 }
-                DisclosureGroup("Use a direct file link") {
+                DisclosureGroup(I18n.T("Use a direct file link")) {
                     VStack(alignment: .leading, spacing: 9) {
-                        TextField("https://…", text: $DirectLink)
+                        TextField(I18n.T("https://…"), text: $DirectLink)
                             .textFieldStyle(.roundedBorder)
                         Button(Store.ResolvingGameIds.contains(Game.Id) ? "Preparing download…" : "Download file") {
                             Store.StartDownload(Game, Link: DirectLink)
@@ -418,7 +422,7 @@ struct GameDetailView: View {
     private var Requirements: some View {
         Panel(Padding: 20) {
             VStack(alignment: .leading, spacing: 13) {
-                Label("Minimum requirements", systemImage: "cpu")
+                Label(I18n.T("Minimum requirements"), systemImage: "cpu")
                     .font(.system(size: 15, weight: .semibold))
                 Text(Details?.MinimumRequirements ?? Game.MinimumRequirements ?? "Requirements are not available from this game's source.")
                     .font(.system(size: 11))
@@ -436,7 +440,7 @@ struct GameDetailView: View {
                         .textSelection(.enabled)
                 }
                 Divider()
-                Text("These requirements describe the source game. Windows versions also need a compatible Mac runtime.")
+                Text(I18n.T("These requirements describe the source game. Windows versions also need a compatible Mac runtime."))
                     .font(.system(size: 10))
                     .foregroundStyle(Theme.SecondaryText)
                     .fixedSize(horizontal: false, vertical: true)
@@ -447,7 +451,7 @@ struct GameDetailView: View {
     private var ScreenshotGallery: some View {
         Panel(Padding: 24) {
             VStack(alignment: .leading, spacing: 17) {
-                Text("Screenshots").font(.system(size: 22, weight: .semibold))
+                Text(I18n.T("Screenshots")).font(.system(size: 22, weight: .semibold))
                 if Loading {
                     ProgressView("Loading screenshots…")
                         .frame(maxWidth: .infinity, minHeight: 160)
@@ -455,7 +459,7 @@ struct GameDetailView: View {
                     GameArtwork(URL: Screenshots[ScreenshotIndex], Name: Game.Name, CornerRadius: 11)
                         .aspectRatio(16 / 9, contentMode: .fit)
                         .contextMenu {
-                            Button("Open full image") {
+                            Button(I18n.T("Open full image")) {
                                 Store.OpenExternal(Screenshots[ScreenshotIndex].absoluteString)
                             }
                         }
@@ -472,7 +476,7 @@ struct GameDetailView: View {
                                         )
                                 }
                                 .buttonStyle(MotionButtonStyle())
-                                .accessibilityLabel("Screenshot \(Index + 1)")
+                                .accessibilityLabel(I18n.Interpolated("Screenshot \(Index + 1)"))
                             }
                         }
                     }
@@ -488,7 +492,7 @@ struct GameDetailView: View {
                 if ShowingHistory && Releases.isEmpty { Task { await LoadHistory() } }
             } label: {
                 HStack {
-                    Label("Release history", systemImage: "clock.arrow.circlepath")
+                    Label(I18n.T("Release history"), systemImage: "clock.arrow.circlepath")
                         .font(.system(size: 20, weight: .semibold))
                     Spacer()
                     Image(systemName: ShowingHistory ? "chevron.up" : "chevron.down")
@@ -502,10 +506,10 @@ struct GameDetailView: View {
                     ProgressView("Loading releases…").padding(22)
                 } else if let HistoryError {
                     Notice(Message: HistoryError, Symbol: "exclamationmark.triangle")
-                    Button("Try again") { Task { await LoadHistory() } }
+                    Button(I18n.T("Try again")) { Task { await LoadHistory() } }
                         .buttonStyle(SecondaryButtonStyle())
                 } else if Releases.isEmpty {
-                    Notice(Message: "No previous releases are available for this game.")
+                    Notice(Message: I18n.T("No previous releases are available for this game."))
                 } else {
                     ForEach(Releases) { Release in
                         Panel(Padding: 16) {
@@ -515,7 +519,7 @@ struct GameDetailView: View {
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text(Release.Version).font(.system(size: 14, weight: .semibold))
                                     if let Date = Release.FirstSeen {
-                                        Text("First seen \(Date)")
+                                        Text(I18n.Interpolated("First seen \(Date)"))
                                             .font(.system(size: 11))
                                             .foregroundStyle(Theme.SecondaryText)
                                     }
@@ -528,7 +532,7 @@ struct GameDetailView: View {
                                     Menu(Store.ResolvingGameIds.contains(Release.Game.Id) ? "Preparing download…" : "Download") {
                                         ForEach(Release.Game.DownloadLinks.keys.sorted(), id: \.self) { Provider in
                                             ForEach(Array((Release.Game.DownloadLinks[Provider] ?? []).enumerated()), id: \.offset) { Index, Link in
-                                                Button("\(Provider) · Link \(Index + 1)") {
+                                                Button(I18n.Interpolated("\(Provider) · Link \(Index + 1)")) {
                                                     Store.StartDownload(Release.Game, Link: Link)
                                                 }
                                             }
@@ -548,14 +552,14 @@ struct GameDetailView: View {
         HStack(spacing: 4) {
             Spacer()
             if let SteamId = Details?.SteamId {
-                Button("Game data provided by Steam ↗") {
+                Button(I18n.T("Game data provided by Steam ↗")) {
                     Store.OpenExternal("https://store.steampowered.com/app/\(SteamId)")
                 }
                 .buttonStyle(MotionButtonStyle())
             } else {
-                Text("Game data provided by the selected catalogue")
+                Text(I18n.T("Game data provided by the selected catalogue"))
             }
-            Text("· Game information may be inaccurate.")
+            Text(I18n.T("· Game information may be inaccurate."))
             Spacer()
         }
         .font(.system(size: 11))

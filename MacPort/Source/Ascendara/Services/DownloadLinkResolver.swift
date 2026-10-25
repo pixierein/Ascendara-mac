@@ -13,7 +13,7 @@ struct ResolvedDownload: Sendable {
 enum DownloadLinkResolver {
     private static let BrowserUserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15"
 
-    static func Resolve(URL: URL) async throws -> [ResolvedDownload] {
+    static func Resolve(URL: URL, Interactive: Bool = true) async throws -> [ResolvedDownload] {
         guard ["https", "http"].contains(URL.scheme?.lowercased() ?? ""), let Host = URL.host?.lowercased() else {
             throw AppFailure.Message("Choose an HTTP or HTTPS download link.")
         }
@@ -32,14 +32,44 @@ enum DownloadLinkResolver {
         }
         let BrowserHosts = ["1fichier.com", "datanodes.to", "vikingfile.com", "fileditch.com", "fileditchfiles.me", "qiwi.gg"]
         if BrowserHosts.contains(where: { Host == $0 || Host.hasSuffix("." + $0) }) {
-            throw AppFailure.Message("This host did not provide a direct file URL. Ascendara will try another available mirror.")
+            guard Interactive else { throw AppFailure.Message("This mirror needs a provider step. Choose it manually or use another mirror.") }
+            return [try await ProviderResolver.Resolve(Link: URL)]
         }
         return [ResolvedDownload(URL: URL)]
     }
 
-    /// The upstream downloader resolves Buzzheavier's htmx token before it
-    /// starts a transfer. Offscreen WebKit lets the host's own JavaScript
-    /// complete first without displaying a provider window.
+    static func ContentLength(_ File: ResolvedDownload) async -> Int64? {
+        var Request = URLRequest(url: File.URL, timeoutInterval: 15)
+        Request.httpMethod = "HEAD"
+        for (Key, Value) in File.Headers { Request.setValue(Value, forHTTPHeaderField: Key) }
+        let Cookies = File.Cookies.compactMap { Cookie -> HTTPCookie? in
+            HTTPCookie(properties: [.domain: Cookie.Domain, .path: Cookie.Path, .name: Cookie.Name,
+                                   .value: Cookie.Value, .secure: Cookie.Secure ? "TRUE" : "FALSE"])
+        }
+        let Configuration = URLSessionConfiguration.ephemeral
+        for Cookie in Cookies { Configuration.httpCookieStorage?.setCookie(Cookie) }
+        let Session = URLSession(configuration: Configuration)
+        defer { Session.finishTasksAndInvalidate() }
+        guard let (_, Response) = try? await Session.data(for: Request), let HTTP = Response as? HTTPURLResponse,
+              (200..<300).contains(HTTP.statusCode), HTTP.expectedContentLength > 0 else { return nil }
+        return HTTP.expectedContentLength
+    }
+
+    static func ContentLengths(_ Files: [ResolvedDownload]) async -> [Int64?] {
+        await withTaskGroup(of: (Int, Int64?).self) { Group in
+            var Iterator = Files.enumerated().makeIterator()
+            var Sizes = [Int64?](repeating: nil, count: Files.count)
+            for _ in 0..<min(4, Files.count) {
+                if let (Index, File) = Iterator.next() { Group.addTask { (Index, await ContentLength(File)) } }
+            }
+            while let (Index, Size) = await Group.next() {
+                Sizes[Index] = Size
+                if let (NextIndex, File) = Iterator.next() { Group.addTask { (NextIndex, await ContentLength(File)) } }
+            }
+            return Sizes
+        }
+    }
+
     private static func Buzz(Link: URL) async throws -> ResolvedDownload {
         let Headers = ["User-Agent": BrowserUserAgent, "Referer": Link.absoluteString]
         if Link.path.hasPrefix("/d/"), Link.query != nil {
@@ -48,9 +78,6 @@ enum DownloadLinkResolver {
         return try await HeadlessBuzzResolver.Resolve(Link: Link)
     }
 
-    /// MegaDB publishes a signed `pt` URL in the page but rejects it until the
-    /// page's countdown has elapsed. Resolve it in the background and pass its
-    /// session cookie to the worker so no provider window is needed.
     private static func MegaDB(Link: URL) async throws -> ResolvedDownload {
         var Request = URLRequest(url: Link, timeoutInterval: 30)
         Request.setValue(BrowserUserAgent, forHTTPHeaderField: "User-Agent")
@@ -87,8 +114,6 @@ enum DownloadLinkResolver {
               let Id = Capture(#"^/d/([A-Za-z0-9_-]+)/?$"#, Text: Link.path) else {
             throw AppFailure.Message("Expected a GOFile sharing URL in the form https://gofile.io/d/CONTENT_ID.")
         }
-        // The upstream downloader carries this fallback for outages of Ascendara's
-        // public configuration endpoint. It is a website token salt, not an account key.
         let Secret: String
         if let (Data, Response) = try? await URLSession.shared.data(from: URL(string: "https://api.ascendara.app/app/json/gofilesecret")!),
            (Response as? HTTPURLResponse)?.statusCode == 200,
@@ -137,9 +162,6 @@ enum DownloadLinkResolver {
               let ScopedCookie = DownloadCookie(Cookie) else {
             throw AppFailure.Message("GOFile issued an unusable download session.")
         }
-        // The detached curl worker has its own cookie jar. A cookie placed in
-        // URLSession.shared never reaches it; pass a GOFile-scoped cookie with
-        // each resolved file instead of exposing the bearer token in headers.
         for Index in Files.indices { Files[Index].Cookies = [ScopedCookie] }
         return Files.sorted { ($0.FileName ?? "") < ($1.FileName ?? "") }
     }
@@ -179,9 +201,6 @@ enum DownloadLinkResolver {
 }
 
 
-/// Runs Buzzheavier's existing download-token flow in an offscreen WebKit
-/// session. The page never opens a window and no file is saved by WebKit; the
-/// resulting signed URL goes to Ascendara's managed download worker.
 @MainActor
 final class HeadlessBuzzResolver: NSObject, WKNavigationDelegate {
     private static var Active: [UUID: HeadlessBuzzResolver] = [:]

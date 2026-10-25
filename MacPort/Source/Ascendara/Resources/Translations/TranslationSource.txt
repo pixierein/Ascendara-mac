@@ -1,0 +1,3 @@
+Ascendara i18next translations, MIT licensed.
+Source: https://github.com/Ascendara/ascendara/tree/0b024b6f7ac8d1e1eae665bcf17df76c5a778515/src/translations
+The optional language catalogue describes upstream's generated languages. Import their i18next JSON files to enable them.

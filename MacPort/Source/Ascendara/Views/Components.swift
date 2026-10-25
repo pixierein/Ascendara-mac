@@ -2,6 +2,7 @@ import AppKit
 import ImageIO
 import Observation
 import SwiftUI
+import AscendaraCore
 
 private struct BigPictureActiveKey: EnvironmentKey {
     static let defaultValue = false
@@ -18,6 +19,7 @@ extension EnvironmentValues {
 private final class ThemeState {
     var Name = "purple"
     var BigPictureActive = false
+    var Custom: ThemePalette?
 }
 
 enum Theme {
@@ -30,7 +32,11 @@ enum Theme {
         get { State.BigPictureActive }
         set { State.BigPictureActive = newValue }
     }
-    static var IsDark: Bool { BigPictureActive || ["dark", "midnight", "cyberpunk", "ocean", "forest", "sunset"].contains(Name) }
+    static var Custom: ThemePalette? {
+        get { State.Custom }
+        set { State.Custom = newValue }
+    }
+    static var IsDark: Bool { BigPictureActive || (Name == "custom" ? Custom?.Dark == true : ["dark", "midnight", "cyberpunk", "ocean", "forest", "sunset"].contains(Name)) }
     private static let Palettes: [String: [Int]] = [
         "light": [0xFFFFFF, 0x0F172A, 0x3B82F6, 0xF1F5F9, 0x64748B, 0xE2E8F0, 0xFFFFFF, 0x0F172A],
         "dark": [0x0F172A, 0xF1F5F9, 0x3B82F6, 0x334155, 0x94A3B8, 0x334155, 0x1E293B, 0xF1F5F9],
@@ -49,6 +55,10 @@ enum Theme {
         Color(red: Red / 255, green: Green / 255, blue: Blue / 255)
     }
     private static func ColorAt(_ Index: Int) -> Color {
+        if !BigPictureActive, Name == "custom", let Custom, (try? Custom.Validate()) != nil,
+           let Value = Int(Custom.Colors[Index].dropFirst(), radix: 16) {
+            return RGB(Double((Value >> 16) & 255), Double((Value >> 8) & 255), Double(Value & 255))
+        }
         let Palette = BigPictureActive ? [0x06090E, 0xFFFFFF, 0x26C2FF, 0x202830, 0xA6B3C7, 0x2C3442, 0x11161F, 0xFFFFFF] : Palettes[Name] ?? Palettes["purple"]!
         let Value = Palette[Index]
         return RGB(Double((Value >> 16) & 255), Double((Value >> 8) & 255), Double(Value & 255))
@@ -61,6 +71,9 @@ enum Theme {
     static var Border: Color { ColorAt(5) }
     static var Card: Color { ColorAt(6) }
     static var CardForeground: Color { ColorAt(7) }
+    static func Palette() -> ThemePalette {
+        (Name == "custom" ? Custom : nil) ?? ThemePalette(Name: "My theme", Dark: IsDark, Colors: (Palettes[Name] ?? Palettes["purple"]!).map { String(format: "#%06X", $0) })
+    }
 }
 
 struct PrimaryButtonStyle: ButtonStyle {
@@ -96,8 +109,8 @@ struct IconButton: View {
     let Action: () -> Void
     var body: some View {
         Button(action: Action) { Image(systemName: Symbol).font(.system(size: (BigPictureActive ? 21 : 14) * Scale, weight: .medium)).frame(width: (BigPictureActive ? 48 : 34) * Scale, height: (BigPictureActive ? 48 : 34) * Scale) }
-            .buttonStyle(MotionButtonStyle()).background(Theme.Muted.opacity(0.45), in: RoundedRectangle(cornerRadius: 8)).help(Help)
-            .accessibilityLabel(Help)
+            .buttonStyle(MotionButtonStyle()).background(Theme.Muted.opacity(0.45), in: RoundedRectangle(cornerRadius: 8)).help(I18n.T(Help))
+            .accessibilityLabel(I18n.T(Help))
     }
 }
 
@@ -111,8 +124,8 @@ struct SectionHeading: View {
         HStack(spacing: 9) {
             if let Symbol { Image(systemName: Symbol).foregroundStyle(Theme.Accent) }
             VStack(alignment: .leading, spacing: 5) {
-                Text(Title).font(.system(size: 22 * Scale, weight: .bold))
-                if let Subtitle { Text(Subtitle).font(.system(size: (BigPictureActive ? 17 : 12) * Scale)).foregroundStyle(Theme.SecondaryText) }
+                Text(I18n.T(Title)).font(.system(size: 22 * Scale, weight: .bold))
+                if let Subtitle { Text(I18n.T(Subtitle)).font(.system(size: (BigPictureActive ? 17 : 12) * Scale)).foregroundStyle(Theme.SecondaryText) }
             }
             Spacer()
         }.foregroundStyle(Theme.Foreground)
@@ -126,8 +139,8 @@ struct PageHeading: View {
     let Subtitle: String
     var body: some View {
         VStack(alignment: .leading, spacing: 7) {
-            Text(Title).font(.system(size: 30 * Scale, weight: .bold))
-            Text(Subtitle).font(.system(size: (BigPictureActive ? 18 : 13) * Scale)).foregroundStyle(Theme.SecondaryText)
+            Text(I18n.T(Title)).font(.system(size: 30 * Scale, weight: .bold))
+            Text(I18n.T(Subtitle)).font(.system(size: (BigPictureActive ? 18 : 13) * Scale)).foregroundStyle(Theme.SecondaryText)
         }.frame(maxWidth: .infinity, alignment: .leading)
     }
 }
@@ -155,8 +168,8 @@ struct EmptyPanel: View {
         VStack(spacing: 14) {
             Image(systemName: Symbol).font(.system(size: 36, weight: .light)).foregroundStyle(Theme.Accent.opacity(0.65))
                 .frame(width: 76, height: 76).background(Theme.Accent.opacity(0.08), in: Circle())
-            Text(Title).font(.system(size: (BigPictureActive ? 28 : 19) * Scale, weight: .semibold))
-            Text(Message).font(.system(size: (BigPictureActive ? 18 : 13) * Scale)).foregroundStyle(Theme.SecondaryText).multilineTextAlignment(.center).frame(maxWidth: BigPictureActive ? 600 : 400)
+            Text(I18n.T(Title)).font(.system(size: (BigPictureActive ? 28 : 19) * Scale, weight: .semibold))
+            Text(I18n.T(Message)).font(.system(size: (BigPictureActive ? 18 : 13) * Scale)).foregroundStyle(Theme.SecondaryText).multilineTextAlignment(.center).frame(maxWidth: BigPictureActive ? 600 : 400)
             if let ActionTitle, let Action { Button(ActionTitle, action: Action).buttonStyle(PrimaryButtonStyle()).padding(.top, 4) }
         }.frame(maxWidth: .infinity).padding(.vertical, 55).padding(.horizontal, 24)
             .background(Theme.Card.opacity(0.55), in: RoundedRectangle(cornerRadius: 14))
@@ -172,7 +185,7 @@ struct Notice: View {
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
             Image(systemName: Symbol)
-            Text(Message).font(.system(size: (BigPictureActive ? 18 : 12) * Scale)).fixedSize(horizontal: false, vertical: true)
+            Text(I18n.T(Message)).font(.system(size: (BigPictureActive ? 18 : 12) * Scale)).fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)
         }.foregroundStyle(Theme.SecondaryText).padding(13)
             .background(Theme.Muted.opacity(0.35), in: RoundedRectangle(cornerRadius: 9))
@@ -189,7 +202,7 @@ struct SearchField: View {
         HStack(spacing: 11) {
             Image(systemName: "magnifyingglass").foregroundStyle(Theme.Accent)
             TextField(Placeholder, text: $Text).textFieldStyle(.plain).font(.system(size: (BigPictureActive ? 20 : 14) * Scale)).focused($Focused)
-            if !Text.isEmpty { Button { Text = "" } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(Theme.SecondaryText) }.buttonStyle(MotionButtonStyle()).accessibilityLabel("Clear search") }
+            if !Text.isEmpty { Button { Text = "" } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(Theme.SecondaryText) }.buttonStyle(MotionButtonStyle()).accessibilityLabel(I18n.T("Clear search")) }
         }.padding(14).background(Theme.Card, in: RoundedRectangle(cornerRadius: 11))
             .overlay(RoundedRectangle(cornerRadius: 11).stroke(Focused ? Theme.Accent : Theme.Border, lineWidth: Focused ? 1.5 : 1))
             .MotionAnimation(Focused, Animation: AppMotion.Quick)
@@ -391,7 +404,7 @@ struct GameCard: View {
                     HStack {
                         Text(Game.Categories.prefix(2).joined(separator: " · ")).lineLimit(1)
                         Spacer(minLength: 4)
-                        if let Size = Game.Size { Text("Download: \(Size)").lineLimit(1) }
+                        if let Size = Game.Size { Text(I18n.Interpolated("Download: \(Size)")).lineLimit(1) }
                     }.font(.system(size: BigPictureActive ? 14 : 11)).foregroundStyle(Theme.SecondaryText)
                 }.padding(12)
             }.foregroundStyle(Theme.CardForeground).background(Theme.Card, in: RoundedRectangle(cornerRadius: 12))
@@ -402,9 +415,9 @@ struct GameCard: View {
             .MotionAnimation(Hovering, Animation: AppMotion.Quick)
             .MotionAnimation(Store.Wishlist.contains(Game.Id), Animation: AppMotion.Spring)
             .contextMenu {
-                Button("View game") { Store.OpenGame(Game) }
+                Button(I18n.T("View game")) { Store.OpenGame(Game) }
                 Button(Store.Wishlist.contains(Game.Id) ? "Remove from Play Later" : "Add to Play Later") { Store.ToggleWishlist(Game) }
-                if let Installed = Store.LibraryMatch(Game) { Button("Play") { Store.LaunchGame(Installed) } }
+                if let Installed = Store.LibraryMatch(Game) { Button(I18n.T("Play")) { Store.LaunchGame(Installed) } }
             }
     }
 }
@@ -418,8 +431,8 @@ struct StatCard: View {
     var body: some View {
         Panel(Padding: 18) {
             VStack(alignment: .leading, spacing: 12) {
-                HStack { Text(Title).font(.system(size: (BigPictureActive ? 18 : 12) * Scale)).foregroundStyle(Theme.SecondaryText); Spacer(); Image(systemName: Symbol).foregroundStyle(Theme.Accent) }
-                Text(Value).font(.system(size: 26 * Scale, weight: .bold)).contentTransition(.numericText())
+                HStack { Text(I18n.T(Title)).font(.system(size: (BigPictureActive ? 18 : 12) * Scale)).foregroundStyle(Theme.SecondaryText); Spacer(); Image(systemName: Symbol).foregroundStyle(Theme.Accent) }
+                Text(I18n.T(Value)).font(.system(size: 26 * Scale, weight: .bold)).contentTransition(.numericText())
                     .MotionAnimation(Value)
             }
         }
@@ -444,12 +457,12 @@ struct CompatibilitySetupProgressView: View {
                 ProgressView(value: Progress, total: 1)
                     .progressViewStyle(.linear)
                     .tint(Theme.Accent)
-                    .accessibilityLabel("Compatibility download")
+                    .accessibilityLabel(I18n.T("Compatibility download"))
                     .accessibilityValue("\(Int((Progress * 100).rounded())) percent")
                 HStack {
                     Text(Service.SetupDetail ?? "Downloading files…")
                     Spacer()
-                    Text("\(Int((Progress * 100).rounded()))%")
+                    Text(I18n.Interpolated("\(Int((Progress * 100).rounded()))%"))
                         .monospacedDigit()
                 }
                 .font(.system(size: 11))
@@ -460,7 +473,7 @@ struct CompatibilitySetupProgressView: View {
                     .tint(Theme.Accent)
                     .accessibilityLabel(Service.SetupMessage ?? "Preparing compatibility setup")
                 if let Detail = Service.SetupDetail {
-                    Text(Detail).font(.system(size: 11)).foregroundStyle(Theme.SecondaryText)
+                    Text(I18n.T(Detail)).font(.system(size: 11)).foregroundStyle(Theme.SecondaryText)
                 }
             }
         }

@@ -12,17 +12,17 @@ struct AscendView: View {
                     .frame(width: 80, height: 80)
                     .background(Theme.Accent.opacity(0.12), in: RoundedRectangle(cornerRadius: 20))
 
-                Text("Ascend is not available in this macOS port.")
+                Text(I18n.T("Ascend is not available in this macOS port."))
                     .font(.system(size: 27, weight: .bold))
                     .multilineTextAlignment(.center)
 
-                Text("If you want to get Ascend, please use the official Electron launcher here:")
+                Text(I18n.T("If you want to get Ascend, please use the official Electron launcher here:"))
                     .font(.system(size: 15))
                     .foregroundStyle(Theme.SecondaryText)
                     .multilineTextAlignment(.center)
 
                 Link(destination: OfficialLauncher) {
-                    Label("Official Electron launcher", systemImage: "arrow.up.right.square")
+                    Label(I18n.T("Official Electron launcher"), systemImage: "arrow.up.right.square")
                 }
                 .buttonStyle(PrimaryButtonStyle())
             }

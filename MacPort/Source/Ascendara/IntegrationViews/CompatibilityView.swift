@@ -8,8 +8,8 @@ struct CompatibilityView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             HStack {
-                SectionHeading(Title: "Windows compatibility", Subtitle: "Wine and Highball for your Windows games", Symbol: "desktopcomputer")
-                Button("Done") { Dismiss() }.buttonStyle(SecondaryButtonStyle()).keyboardShortcut(.cancelAction)
+                SectionHeading(Title: I18n.T("Windows compatibility"), Subtitle: I18n.T("Wine and Highball for your Windows games"), Symbol: "desktopcomputer")
+                Button(I18n.T("Done")) { Dismiss() }.buttonStyle(SecondaryButtonStyle()).keyboardShortcut(.cancelAction)
             }
             CompatibilityPanel(Service: Store.Compatibility).environmentObject(Store)
         }.padding(28).frame(width: 720, height: 680).background(Theme.Background)
@@ -56,81 +56,81 @@ private struct CompatibilityPanel: View {
                         if let Error = Service.Status.ErrorMessage { Notice(Message: Error, Symbol: "exclamationmark.triangle") }
                     }
                 }
-                DisclosureGroup("Advanced options", isExpanded: $AdvancedExpanded) {
+                DisclosureGroup(I18n.T("Advanced options"), isExpanded: $AdvancedExpanded) {
                     VStack(alignment: .leading, spacing: 18) {
                 Panel {
                     VStack(alignment: .leading, spacing: 14) {
                         HStack {
-                            Text("Your Mac").font(.headline)
+                            Text(I18n.T("Your Mac")).font(.headline)
                             Spacer()
                             if Busy { ProgressView().controlSize(.small) }
-                            Button("Refresh") { Refresh() }.disabled(Busy)
+                            Button(I18n.T("Refresh")) { Refresh() }.disabled(Busy)
                         }
                         StatusRow("Apple Silicon", Available: Service.Status.AppleSilicon)
                         StatusRow("Rosetta 2", Available: Service.Status.RosettaInstalled)
                         if Service.Status.AppleSilicon && !Service.Status.RosettaInstalled {
-                            Text("Rosetta is required by Highball. macOS may ask for your administrator password when you install it.").font(.caption).foregroundStyle(Theme.SecondaryText)
-                            Button("Install Rosetta 2") { InstallRosetta() }.buttonStyle(SecondaryButtonStyle()).disabled(Busy)
+                            Text(I18n.T("Rosetta is required by Highball. macOS may ask for your administrator password when you install it.")).font(.caption).foregroundStyle(Theme.SecondaryText)
+                            Button(I18n.T("Install Rosetta 2")) { InstallRosetta() }.buttonStyle(SecondaryButtonStyle()).disabled(Busy)
                         }
                     }
                 }
                 Panel {
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("Wine").font(.headline)
+                        Text(I18n.T("Wine")).font(.headline)
                         StatusRow("Wine runtime", Available: Service.Status.WineAvailable)
                         Text(Service.Status.WinePath ?? "Choose an installed Wine executable.").font(.caption).foregroundStyle(Theme.SecondaryText).textSelection(.enabled)
                         HStack {
-                            TextField("Custom Wine path", text: $Store.Settings.WinePath).textFieldStyle(.roundedBorder)
-                            Button("Choose…") { ChooseRuntime(Wine: true) }
+                            TextField(I18n.T("Custom Wine path"), text: $Store.Settings.WinePath).textFieldStyle(.roundedBorder)
+                            Button(I18n.T("Choose…")) { ChooseRuntime(Wine: true) }
                         }
                     }
                 }
                 Panel {
                     VStack(alignment: .leading, spacing: 13) {
-                        Text("Highball").font(.headline)
+                        Text(I18n.T("Highball")).font(.headline)
                         StatusRow("Highball runtime", Available: Service.Status.HighballAvailable)
                         HStack {
-                            TextField("Custom Highball path", text: $Store.Settings.HighballPath).textFieldStyle(.roundedBorder)
-                            Button("Choose…") { ChooseRuntime(Wine: false) }
+                            TextField(I18n.T("Custom Highball path"), text: $Store.Settings.HighballPath).textFieldStyle(.roundedBorder)
+                            Button(I18n.T("Choose…")) { ChooseRuntime(Wine: false) }
                         }
-                        Text("The bundled Highball tool downloads a checksum-verified Wine engine and prepares the ascendara environment on this Mac. Games also run setup automatically when needed.")
+                        Text(I18n.T("The bundled Highball tool downloads a checksum-verified Wine engine and prepares the ascendara environment on this Mac. Games also run setup automatically when needed."))
                             .font(.caption).foregroundStyle(Theme.SecondaryText)
                         HStack {
-                            Button("Set up automatically") { AutoSetup() }
+                            Button(I18n.T("Set up automatically")) { AutoSetup() }
                                 .buttonStyle(PrimaryButtonStyle())
-                            Button("Download latest compatibility files") { DownloadLatest() }
+                            Button(I18n.T("Download latest compatibility files")) { DownloadLatest() }
                                 .buttonStyle(SecondaryButtonStyle())
                         }.disabled(Busy || !Service.Status.HighballAvailable || !Store.RunningIds.isEmpty)
                         if let ID = Service.Status.BottleEngines["ascendara"] {
-                            Text("Active engine: \(ID)").font(.caption).foregroundStyle(Theme.SecondaryText)
+                            Text(I18n.Interpolated("Active engine: \(ID)")).font(.caption).foregroundStyle(Theme.SecondaryText)
                         } else if let ID = Service.DefaultEngineID {
-                            Text("Bundled engine: \(ID)").font(.caption).foregroundStyle(Theme.SecondaryText)
+                            Text(I18n.Interpolated("Bundled engine: \(ID)")).font(.caption).foregroundStyle(Theme.SecondaryText)
                         }
                         if let Error = Service.Status.ErrorMessage { Notice(Message: Error, Symbol: "exclamationmark.triangle") }
                         HStack {
-                            Text("Installed engines").font(.subheadline)
+                            Text(I18n.T("Installed engines")).font(.subheadline)
                             Spacer()
-                            Menu("Install engine") {
-                                Button("Install bundled engine") { InstallDefaultEngine() }.disabled(Service.DefaultManifestURL == nil)
-                                Button("Choose engine manifest…") { InstallEngine() }
+                            Menu(I18n.T("Install engine")) {
+                                Button(I18n.T("Install bundled engine")) { InstallDefaultEngine() }.disabled(Service.DefaultManifestURL == nil)
+                                Button(I18n.T("Choose engine manifest…")) { InstallEngine() }
                             }.disabled(Service.Status.HighballPath == nil || Busy)
                         }
-                        if Service.Status.Engines.isEmpty { Text("No installed engines detected.").font(.caption).foregroundStyle(Theme.SecondaryText) }
+                        if Service.Status.Engines.isEmpty { Text(I18n.T("No installed engines detected.")).font(.caption).foregroundStyle(Theme.SecondaryText) }
                         else {
-                            Picker("Engine", selection: $Engine) { ForEach(Service.Status.Engines, id: \.self) { Engine in Text(Engine).tag(Engine) } }
+                            Picker(I18n.T("Engine"), selection: $Engine) { ForEach(Service.Status.Engines, id: \.self) { Engine in Text(Engine).tag(Engine) } }
                             HStack {
-                                TextField("Bottle name", text: $Bottle).textFieldStyle(.roundedBorder)
-                                Button("Create bottle") { CreateBottle() }.disabled(Busy || Bottle.isEmpty || Engine.isEmpty)
+                                TextField(I18n.T("Bottle name"), text: $Bottle).textFieldStyle(.roundedBorder)
+                                Button(I18n.T("Create bottle")) { CreateBottle() }.disabled(Busy || Bottle.isEmpty || Engine.isEmpty)
                             }
-                            Button("Use engine for bottle") { SwitchBottleEngine() }
+                            Button(I18n.T("Use engine for bottle")) { SwitchBottleEngine() }
                                 .disabled(Busy || Engine.isEmpty || !Service.Status.Bottles.contains(Bottle) || !Store.RunningIds.isEmpty)
-                            Button("Review D3DMetal license…") { ShowingLicense = true }.disabled(Busy || Service.D3DMetalLicenseText == nil || Engine.isEmpty)
+                            Button(I18n.T("Review D3DMetal license…")) { ShowingLicense = true }.disabled(Busy || Service.D3DMetalLicenseText == nil || Engine.isEmpty)
                         }
                         Text(Service.Status.Bottles.isEmpty ? "No bottles detected." : "Bottles: " + Service.Status.Bottles.joined(separator: ", ")).font(.caption).foregroundStyle(Theme.SecondaryText)
-                        Text("Select a game's runner, bottle, and renderer in its library settings.").font(.caption).foregroundStyle(Theme.SecondaryText)
+                        Text(I18n.T("Select a game's runner, bottle, and renderer in its library settings.")).font(.caption).foregroundStyle(Theme.SecondaryText)
                     }
                 }
-                Button("Save paths") { Store.SaveSettings(); Refresh() }.buttonStyle(PrimaryButtonStyle())
+                Button(I18n.T("Save paths")) { Store.SaveSettings(); Refresh() }.buttonStyle(PrimaryButtonStyle())
                     }
                     .padding(.top, 15)
                 }
@@ -139,12 +139,12 @@ private struct CompatibilityPanel: View {
         }.MotionAnimation(Busy).MotionAnimation(Result).task { Refresh() }
             .sheet(isPresented: $ShowingLicense) {
                 VStack(alignment: .leading, spacing: 18) {
-                    SectionHeading(Title: "D3DMetal license", Subtitle: "Review the license before enabling this renderer for \(Engine).")
+                    SectionHeading(Title: I18n.T("D3DMetal license"), Subtitle: I18n.Interpolated("Review the license before enabling this renderer for \(Engine)."))
                     ScrollView { Text(Service.D3DMetalLicenseText ?? "The license text is unavailable.").font(.system(size: 12)).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading) }
                     HStack {
                         Spacer()
-                        Button("Cancel") { ShowingLicense = false }.buttonStyle(SecondaryButtonStyle())
-                        Button("Accept license") {
+                        Button(I18n.T("Cancel")) { ShowingLicense = false }.buttonStyle(SecondaryButtonStyle())
+                        Button(I18n.T("Accept license")) {
                             ShowingLicense = false
                             Busy = true
                             Task {
@@ -161,7 +161,7 @@ private struct CompatibilityPanel: View {
     private func StatusRow(_ Title: String, Available: Bool) -> some View {
         HStack {
             Image(systemName: Available ? "checkmark.circle.fill" : "minus.circle").foregroundStyle(Available ? .green : Theme.SecondaryText)
-            Text(Title).font(.subheadline)
+            Text(I18n.T(Title)).font(.subheadline)
             Spacer()
             Text(Available ? "Available" : "Not detected").font(.caption).foregroundStyle(Theme.SecondaryText)
         }

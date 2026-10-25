@@ -76,17 +76,17 @@ struct BigPictureView: View {
                 } else {
                     Image(systemName: "gamecontroller.fill").font(.system(size: 28 * Scale))
                 }
-            }.buttonStyle(MotionButtonStyle()).accessibilityLabel("Ascendara menu")
+            }.buttonStyle(MotionButtonStyle()).accessibilityLabel(I18n.T("Ascendara menu"))
                 .padding(.top, 30 * Scale).padding(.bottom, 12 * Scale)
             Spacer(minLength: 12 * Scale)
             ForEach(RailRoutes) { Route in
                 RailButton(Symbol: Route.Icon, Title: Title(Route), Active: Store.Route == Route, Scale: Scale) { OpenRoute(Route) }
             }
-            RailButton(Symbol: "ellipsis", Title: "All sections", Active: false, Scale: Scale, Action: ShowNavigation)
+            RailButton(Symbol: "ellipsis", Title: I18n.T("All sections"), Active: false, Scale: Scale, Action: ShowNavigation)
             Spacer(minLength: 12 * Scale)
-            RailButton(Symbol: "person.crop.circle", Title: "Profile", Active: Store.Route == .Profile, Scale: Scale) { OpenRoute(.Profile) }
-            RailButton(Symbol: "gearshape", Title: "Preferences", Active: Store.Route == .Settings, Scale: Scale) { OpenRoute(.Settings) }
-            RailButton(Symbol: "rectangle.portrait.and.arrow.right", Title: "Exit Big Picture", Active: false, Scale: Scale, Action: Exit)
+            RailButton(Symbol: "person.crop.circle", Title: I18n.T("Profile"), Active: Store.Route == .Profile, Scale: Scale) { OpenRoute(.Profile) }
+            RailButton(Symbol: "gearshape", Title: I18n.T("Preferences"), Active: Store.Route == .Settings, Scale: Scale) { OpenRoute(.Settings) }
+            RailButton(Symbol: "rectangle.portrait.and.arrow.right", Title: I18n.T("Exit Big Picture"), Active: false, Scale: Scale, Action: Exit)
                 .padding(.bottom, 28 * Scale)
         }
         .frame(maxHeight: .infinity)
@@ -112,7 +112,7 @@ struct BigPictureView: View {
                 if let Icon = AppResources.Icon {
                     Image(nsImage: Icon).resizable().scaledToFit().frame(width: 36 * Scale, height: 36 * Scale)
                 }
-                Text("Ascendara").font(.system(size: 26 * Scale, weight: .bold))
+                Text(I18n.T("Ascendara")).font(.system(size: 26 * Scale, weight: .bold))
             }.padding(.horizontal, 24 * Scale).padding(.top, 38 * Scale)
             ScrollViewReader { Reader in
                 ScrollView {
@@ -121,7 +121,7 @@ struct BigPictureView: View {
                             MenuButton(Title: Title(Route), Symbol: Route.Icon, Index: Index, Scale: Scale) { OpenRoute(Route) }
                                 .id(Index)
                         }
-                        MenuButton(Title: "Exit Big Picture", Symbol: "rectangle.portrait.and.arrow.right", Index: Routes.count, Scale: Scale, Action: Exit)
+                        MenuButton(Title: I18n.T("Exit Big Picture"), Symbol: "rectangle.portrait.and.arrow.right", Index: Routes.count, Scale: Scale, Action: Exit)
                             .id(Routes.count).padding(.top, 18 * Scale)
                     }.padding(.horizontal, 16 * Scale).padding(.vertical, 8 * Scale)
                 }.scrollIndicators(.hidden)
@@ -131,7 +131,7 @@ struct BigPictureView: View {
                         withAnimation(MotionEnabled ? AppMotion.Quick : nil) { Reader.scrollTo(NavigationIndex, anchor: .center) }
                     }
             }
-            Text("B / Esc to return").font(.system(size: 15 * Scale)).foregroundStyle(TVStyle.Secondary)
+            Text(I18n.T("B / Esc to return")).font(.system(size: 15 * Scale)).foregroundStyle(TVStyle.Secondary)
                 .padding(.horizontal, 28 * Scale).padding(.bottom, 30 * Scale)
         }
         .background(TVStyle.Background)
@@ -144,7 +144,7 @@ struct BigPictureView: View {
         return Button(action: Action) {
             HStack(spacing: 18 * Scale) {
                 Image(systemName: Symbol).frame(width: 25 * Scale)
-                Text(Title).lineLimit(1)
+                Text(I18n.T(Title)).lineLimit(1)
                 Spacer(minLength: 0)
             }
             .font(.system(size: 18 * Scale, weight: .semibold))
@@ -206,10 +206,10 @@ struct BigPictureView: View {
 
     private func Hints(Scale: CGFloat) -> some View {
         HStack(spacing: 22 * Scale) {
-            Text("↑↓←→  Browse")
-            Text("A / Return  Select")
-            Text("B / Esc  Back")
-            Text("☰ / Tab  Menu")
+            Text(I18n.T("↑↓←→  Browse"))
+            Text(I18n.T("A / Return  Select"))
+            Text(I18n.T("B / Esc  Back"))
+            Text(I18n.T("☰ / Tab  Menu"))
         }.font(.system(size: 12 * Scale, weight: .medium)).foregroundStyle(TVStyle.Secondary.opacity(0.75))
             .accessibilityHidden(true)
     }

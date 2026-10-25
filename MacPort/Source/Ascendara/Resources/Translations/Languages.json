@@ -1,0 +1,635 @@
+{
+  "commit": "0b024b6f7ac8d1e1eae665bcf17df76c5a778515",
+  "languages": [
+    {
+      "id": "en",
+      "name": "English",
+      "nativeName": "English",
+      "bundled": true
+    },
+    {
+      "id": "ar",
+      "name": "Arabic",
+      "nativeName": "العربية",
+      "bundled": true
+    },
+    {
+      "id": "bn",
+      "name": "Bengali",
+      "nativeName": "বাংলা",
+      "bundled": true
+    },
+    {
+      "id": "es",
+      "name": "Spanish",
+      "nativeName": "Español",
+      "bundled": true
+    },
+    {
+      "id": "hi",
+      "name": "Hindi",
+      "nativeName": "हिन्दी",
+      "bundled": true
+    },
+    {
+      "id": "ja",
+      "name": "Japanese",
+      "nativeName": "日本語",
+      "bundled": true
+    },
+    {
+      "id": "pt",
+      "name": "Portuguese",
+      "nativeName": "Português",
+      "bundled": true
+    },
+    {
+      "id": "ru",
+      "name": "Russian",
+      "nativeName": "Русский",
+      "bundled": true
+    },
+    {
+      "id": "zh-CN",
+      "name": "Chinese (Simplified)",
+      "nativeName": "简体中文",
+      "bundled": true
+    },
+    {
+      "id": "it",
+      "name": "Italian",
+      "nativeName": "Italiano",
+      "bundled": true
+    },
+    {
+      "id": "de",
+      "name": "German",
+      "nativeName": "Deutsch",
+      "bundled": true
+    },
+    {
+      "id": "fr",
+      "name": "French",
+      "nativeName": "Français",
+      "bundled": true
+    },
+    {
+      "id": "af",
+      "name": "Afrikaans",
+      "nativeName": "Afrikaans",
+      "bundled": false
+    },
+    {
+      "id": "am",
+      "name": "Amharic",
+      "nativeName": "አማርኛ",
+      "bundled": false
+    },
+    {
+      "id": "az",
+      "name": "Azerbaijani",
+      "nativeName": "Azərbaycan dili",
+      "bundled": false
+    },
+    {
+      "id": "be",
+      "name": "Belarusian",
+      "nativeName": "Беларуская",
+      "bundled": false
+    },
+    {
+      "id": "bg",
+      "name": "Bulgarian",
+      "nativeName": "Български",
+      "bundled": false
+    },
+    {
+      "id": "bs",
+      "name": "Bosnian",
+      "nativeName": "Bosanski",
+      "bundled": false
+    },
+    {
+      "id": "ca",
+      "name": "Catalan",
+      "nativeName": "Català",
+      "bundled": false
+    },
+    {
+      "id": "ceb",
+      "name": "Cebuano",
+      "nativeName": "Cebuano",
+      "bundled": false
+    },
+    {
+      "id": "co",
+      "name": "Corsican",
+      "nativeName": "Corsu",
+      "bundled": false
+    },
+    {
+      "id": "cs",
+      "name": "Czech",
+      "nativeName": "Čeština",
+      "bundled": false
+    },
+    {
+      "id": "cy",
+      "name": "Welsh",
+      "nativeName": "Cymraeg",
+      "bundled": false
+    },
+    {
+      "id": "da",
+      "name": "Danish",
+      "nativeName": "Dansk",
+      "bundled": false
+    },
+    {
+      "id": "el",
+      "name": "Greek",
+      "nativeName": "Ελληνικά",
+      "bundled": false
+    },
+    {
+      "id": "eo",
+      "name": "Esperanto",
+      "nativeName": "Esperanto",
+      "bundled": false
+    },
+    {
+      "id": "et",
+      "name": "Estonian",
+      "nativeName": "Eesti",
+      "bundled": false
+    },
+    {
+      "id": "eu",
+      "name": "Basque",
+      "nativeName": "Euskara",
+      "bundled": false
+    },
+    {
+      "id": "fa",
+      "name": "Persian",
+      "nativeName": "فارسی",
+      "bundled": false
+    },
+    {
+      "id": "fi",
+      "name": "Finnish",
+      "nativeName": "Suomi",
+      "bundled": false
+    },
+    {
+      "id": "fy",
+      "name": "Frisian",
+      "nativeName": "Frysk",
+      "bundled": false
+    },
+    {
+      "id": "ga",
+      "name": "Irish",
+      "nativeName": "Gaeilge",
+      "bundled": false
+    },
+    {
+      "id": "gd",
+      "name": "Scots Gaelic",
+      "nativeName": "Gàidhlig",
+      "bundled": false
+    },
+    {
+      "id": "gl",
+      "name": "Galician",
+      "nativeName": "Galego",
+      "bundled": false
+    },
+    {
+      "id": "gu",
+      "name": "Gujarati",
+      "nativeName": "ગુજરાતી",
+      "bundled": false
+    },
+    {
+      "id": "ha",
+      "name": "Hausa",
+      "nativeName": "Hausa",
+      "bundled": false
+    },
+    {
+      "id": "haw",
+      "name": "Hawaiian",
+      "nativeName": "ʻŌlelo Hawaiʻi",
+      "bundled": false
+    },
+    {
+      "id": "he",
+      "name": "Hebrew",
+      "nativeName": "עברית",
+      "bundled": false
+    },
+    {
+      "id": "hmn",
+      "name": "Hmong",
+      "nativeName": "Hmong",
+      "bundled": false
+    },
+    {
+      "id": "hr",
+      "name": "Croatian",
+      "nativeName": "Hrvatski",
+      "bundled": false
+    },
+    {
+      "id": "ht",
+      "name": "Haitian Creole",
+      "nativeName": "Kreyòl Ayisyen",
+      "bundled": false
+    },
+    {
+      "id": "hu",
+      "name": "Hungarian",
+      "nativeName": "Magyar",
+      "bundled": false
+    },
+    {
+      "id": "hy",
+      "name": "Armenian",
+      "nativeName": "Հայերեն",
+      "bundled": false
+    },
+    {
+      "id": "id",
+      "name": "Indonesian",
+      "nativeName": "Bahasa Indonesia",
+      "bundled": false
+    },
+    {
+      "id": "ig",
+      "name": "Igbo",
+      "nativeName": "Igbo",
+      "bundled": false
+    },
+    {
+      "id": "is",
+      "name": "Icelandic",
+      "nativeName": "Íslenska",
+      "bundled": false
+    },
+    {
+      "id": "iw",
+      "name": "Hebrew",
+      "nativeName": "עברית",
+      "bundled": false
+    },
+    {
+      "id": "jw",
+      "name": "Javanese",
+      "nativeName": "Basa Jawa",
+      "bundled": false
+    },
+    {
+      "id": "ka",
+      "name": "Georgian",
+      "nativeName": "ქართული",
+      "bundled": false
+    },
+    {
+      "id": "kk",
+      "name": "Kazakh",
+      "nativeName": "Қазақ тілі",
+      "bundled": false
+    },
+    {
+      "id": "km",
+      "name": "Khmer",
+      "nativeName": "ខ្មែរ",
+      "bundled": false
+    },
+    {
+      "id": "kn",
+      "name": "Kannada",
+      "nativeName": "ಕನ್ನಡ",
+      "bundled": false
+    },
+    {
+      "id": "ko",
+      "name": "Korean",
+      "nativeName": "한국어",
+      "bundled": false
+    },
+    {
+      "id": "ku",
+      "name": "Kurdish",
+      "nativeName": "Kurdî",
+      "bundled": false
+    },
+    {
+      "id": "ky",
+      "name": "Kyrgyz",
+      "nativeName": "Кыргызча",
+      "bundled": false
+    },
+    {
+      "id": "la",
+      "name": "Latin",
+      "nativeName": "Latina",
+      "bundled": false
+    },
+    {
+      "id": "lb",
+      "name": "Luxembourgish",
+      "nativeName": "Lëtzebuergesch",
+      "bundled": false
+    },
+    {
+      "id": "lo",
+      "name": "Lao",
+      "nativeName": "ລາວ",
+      "bundled": false
+    },
+    {
+      "id": "lt",
+      "name": "Lithuanian",
+      "nativeName": "Lietuvių",
+      "bundled": false
+    },
+    {
+      "id": "lv",
+      "name": "Latvian",
+      "nativeName": "Latviešu",
+      "bundled": false
+    },
+    {
+      "id": "mg",
+      "name": "Malagasy",
+      "nativeName": "Malagasy",
+      "bundled": false
+    },
+    {
+      "id": "mi",
+      "name": "Maori",
+      "nativeName": "Māori",
+      "bundled": false
+    },
+    {
+      "id": "mk",
+      "name": "Macedonian",
+      "nativeName": "Македонски",
+      "bundled": false
+    },
+    {
+      "id": "ml",
+      "name": "Malayalam",
+      "nativeName": "മലയാളം",
+      "bundled": false
+    },
+    {
+      "id": "mn",
+      "name": "Mongolian",
+      "nativeName": "Монгол",
+      "bundled": false
+    },
+    {
+      "id": "mr",
+      "name": "Marathi",
+      "nativeName": "मराठी",
+      "bundled": false
+    },
+    {
+      "id": "ms",
+      "name": "Malay",
+      "nativeName": "Bahasa Melayu",
+      "bundled": false
+    },
+    {
+      "id": "mt",
+      "name": "Maltese",
+      "nativeName": "Malti",
+      "bundled": false
+    },
+    {
+      "id": "my",
+      "name": "Myanmar (Burmese)",
+      "nativeName": "မြန်မာစာ",
+      "bundled": false
+    },
+    {
+      "id": "ne",
+      "name": "Nepali",
+      "nativeName": "नेपाली",
+      "bundled": false
+    },
+    {
+      "id": "nl",
+      "name": "Dutch",
+      "nativeName": "Nederlands",
+      "bundled": false
+    },
+    {
+      "id": "no",
+      "name": "Norwegian",
+      "nativeName": "Norsk",
+      "bundled": false
+    },
+    {
+      "id": "ny",
+      "name": "Chichewa",
+      "nativeName": "Chichewa",
+      "bundled": false
+    },
+    {
+      "id": "pa",
+      "name": "Punjabi",
+      "nativeName": "ਪੰਜਾਬੀ",
+      "bundled": false
+    },
+    {
+      "id": "pl",
+      "name": "Polish",
+      "nativeName": "Polski",
+      "bundled": false
+    },
+    {
+      "id": "ps",
+      "name": "Pashto",
+      "nativeName": "پښتو",
+      "bundled": false
+    },
+    {
+      "id": "ro",
+      "name": "Romanian",
+      "nativeName": "Română",
+      "bundled": false
+    },
+    {
+      "id": "sd",
+      "name": "Sindhi",
+      "nativeName": "سنڌي",
+      "bundled": false
+    },
+    {
+      "id": "si",
+      "name": "Sinhala",
+      "nativeName": "සිංහල",
+      "bundled": false
+    },
+    {
+      "id": "sk",
+      "name": "Slovak",
+      "nativeName": "Slovenčina",
+      "bundled": false
+    },
+    {
+      "id": "sl",
+      "name": "Slovenian",
+      "nativeName": "Slovenščina",
+      "bundled": false
+    },
+    {
+      "id": "sm",
+      "name": "Samoan",
+      "nativeName": "Gagana Samoa",
+      "bundled": false
+    },
+    {
+      "id": "sn",
+      "name": "Shona",
+      "nativeName": "Shona",
+      "bundled": false
+    },
+    {
+      "id": "so",
+      "name": "Somali",
+      "nativeName": "Soomaali",
+      "bundled": false
+    },
+    {
+      "id": "sq",
+      "name": "Albanian",
+      "nativeName": "Shqip",
+      "bundled": false
+    },
+    {
+      "id": "sr",
+      "name": "Serbian",
+      "nativeName": "Српски",
+      "bundled": false
+    },
+    {
+      "id": "st",
+      "name": "Sesotho",
+      "nativeName": "Sesotho",
+      "bundled": false
+    },
+    {
+      "id": "su",
+      "name": "Sundanese",
+      "nativeName": "Basa Sunda",
+      "bundled": false
+    },
+    {
+      "id": "sv",
+      "name": "Swedish",
+      "nativeName": "Svenska",
+      "bundled": false
+    },
+    {
+      "id": "sw",
+      "name": "Swahili",
+      "nativeName": "Kiswahili",
+      "bundled": false
+    },
+    {
+      "id": "ta",
+      "name": "Tamil",
+      "nativeName": "தமிழ்",
+      "bundled": false
+    },
+    {
+      "id": "te",
+      "name": "Telugu",
+      "nativeName": "తెలుగు",
+      "bundled": false
+    },
+    {
+      "id": "tg",
+      "name": "Tajik",
+      "nativeName": "Тоҷикӣ",
+      "bundled": false
+    },
+    {
+      "id": "th",
+      "name": "Thai",
+      "nativeName": "ไทย",
+      "bundled": false
+    },
+    {
+      "id": "tl",
+      "name": "Filipino",
+      "nativeName": "Filipino",
+      "bundled": false
+    },
+    {
+      "id": "tr",
+      "name": "Turkish",
+      "nativeName": "Türkçe",
+      "bundled": false
+    },
+    {
+      "id": "uk",
+      "name": "Ukrainian",
+      "nativeName": "Українська",
+      "bundled": false
+    },
+    {
+      "id": "ur",
+      "name": "Urdu",
+      "nativeName": "اردو",
+      "bundled": false
+    },
+    {
+      "id": "uz",
+      "name": "Uzbek",
+      "nativeName": "O'zbek",
+      "bundled": false
+    },
+    {
+      "id": "vi",
+      "name": "Vietnamese",
+      "nativeName": "Tiếng Việt",
+      "bundled": false
+    },
+    {
+      "id": "xh",
+      "name": "Xhosa",
+      "nativeName": "isiXhosa",
+      "bundled": false
+    },
+    {
+      "id": "yi",
+      "name": "Yiddish",
+      "nativeName": "ייִדיש",
+      "bundled": false
+    },
+    {
+      "id": "yo",
+      "name": "Yoruba",
+      "nativeName": "Yorùbá",
+      "bundled": false
+    },
+    {
+      "id": "zh-TW",
+      "name": "Chinese (Traditional)",
+      "nativeName": "繁體中文",
+      "bundled": false
+    },
+    {
+      "id": "zu",
+      "name": "Zulu",
+      "nativeName": "isiZulu",
+      "bundled": false
+    }
+  ]
+}

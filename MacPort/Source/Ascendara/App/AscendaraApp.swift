@@ -19,12 +19,21 @@ struct AscendaraApp: App {
         .defaultSize(width: 1280, height: 850)
         .windowStyle(.hiddenTitleBar)
         .commands {
+            CommandGroup(replacing: .appInfo) {
+                Button(I18n.T("About Ascendara")) {
+                    NSApplication.shared.orderFrontStandardAboutPanel(options: [
+                        .applicationName: "Ascendara for macOS",
+                        .applicationVersion: AppVersion.Current,
+                        .credits: NSAttributedString(string: I18n.T("An unofficial native macOS port of Ascendara.") + "\n" + I18n.T("Based on the original Ascendara project by tagoWorks."))
+                    ])
+                }
+            }
             CommandGroup(replacing: .appSettings) {
-                Button("Preferences…") { Store.SelectedGame = nil; Store.Route = .Settings }.keyboardShortcut(",")
+                Button(I18n.T("Preferences…")) { Store.SelectedGame = nil; Store.Route = .Settings }.keyboardShortcut(",")
             }
             CommandGroup(replacing: .newItem) {
-                Button("Add Game…") { Store.ImportGame() }.keyboardShortcut("o")
-                Button("Import Catalogue…") { Store.ImportCatalog() }.keyboardShortcut("o", modifiers: [.command, .shift])
+                Button(I18n.T("Add Game…")) { Store.ImportGame() }.keyboardShortcut("o")
+                Button(I18n.T("Import Catalogue…")) { Store.ImportCatalog() }.keyboardShortcut("o", modifiers: [.command, .shift])
             }
             CommandMenu("Navigate") {
                 ForEach(Array([AppRoute.Home, .Search, .Library, .Downloads, .Profile, .Ascend, .Settings].enumerated()), id: \.element) { Index, Route in
@@ -32,17 +41,17 @@ struct AscendaraApp: App {
                         .keyboardShortcut(KeyEquivalent(Character(String(Index + 1))))
                 }
                 Divider()
-                Button("Search Games") { Store.SelectedGame = nil; Store.Route = .Search }.keyboardShortcut("k")
-                Button("Wishlist") { Store.SelectedGame = nil; Store.Route = .Wishlist }.keyboardShortcut("w", modifiers: [.command, .shift])
-                Button("Big Picture") { Store.ShowingBigPicture = true }.keyboardShortcut("b", modifiers: [.command, .shift]).disabled(Store.ShowingWelcome)
+                Button(I18n.T("Search Games")) { Store.SelectedGame = nil; Store.Route = .Search }.keyboardShortcut("k")
+                Button(I18n.T("Wishlist")) { Store.SelectedGame = nil; Store.Route = .Wishlist }.keyboardShortcut("w", modifiers: [.command, .shift])
+                Button(I18n.T("Big Picture")) { Store.ShowingBigPicture = true }.keyboardShortcut("b", modifiers: [.command, .shift]).disabled(Store.ShowingWelcome)
             }
             CommandGroup(after: .toolbar) {
-                Button("Refresh Catalogue") { Store.RefreshCatalog() }.keyboardShortcut("r")
+                Button(I18n.T("Refresh Catalogue")) { Store.RefreshCatalog() }.keyboardShortcut("r")
             }
             CommandGroup(replacing: .help) {
-                Button("Ascendara Documentation") { Store.OpenExternal("https://ascendara.app/docs") }
-                Button("View Source") { Store.OpenExternal("https://github.com/pixierein/ascendara") }
-                Button("Show App Data") { NSWorkspace.shared.open(AppPaths.Support) }
+                Button(I18n.T("Ascendara Documentation")) { Store.OpenExternal("https://ascendara.app/docs") }
+                Button(I18n.T("View Source")) { Store.OpenExternal("https://github.com/pixierein/Ascendara-mac") }
+                Button(I18n.T("Show App Data")) { NSWorkspace.shared.open(AppPaths.Support) }
             }
         }
     }

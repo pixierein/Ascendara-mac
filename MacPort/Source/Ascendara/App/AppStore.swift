@@ -3,6 +3,7 @@ import Combine
 import Foundation
 import UniformTypeIdentifiers
 import UserNotifications
+import AscendaraCore
 
 struct HomeCategorySection: Sendable {
     let Name: String
@@ -77,6 +78,8 @@ final class AppStore: ObservableObject {
     @Published var CatalogWarning: String?
     @Published var ErrorMessage: String?
     @Published var GameFailure: GameFailureReport?
+    @Published var Reinstall: ReinstallRequest?
+    @Published private(set) var AvailableGameUpdates: [UUID: Game] = [:]
     @Published var Notice: String?
     @Published var ShowingWelcome = false
     @Published var ShowingBigPicture = false
@@ -99,6 +102,9 @@ final class AppStore: ObservableObject {
     let Compatibility = CompatibilityService()
     let MacCompatibilityLookup = MacCompatibilityService()
     let AchievementWatcher = AchievementWatcherService()
+    let Notifications = NotificationService()
+    private var SizeTask: Task<Void, Never>?
+    private var AutomaticUpdateTask: Task<Void, Never>?
     private var Observers: Set<AnyCancellable> = []
     private var CatalogTask: Task<Void, Never>?
     private var DidStart = false
@@ -152,13 +158,19 @@ final class AppStore: ObservableObject {
         DownloadStore.$ErrorMessage.compactMap { $0 }.sink { [weak self] in self?.ErrorMessage = $0 }.store(in: &Observers)
         DownloadStore.OnCompleted = { [weak self] Download in self?.DownloadCompleted(Download) }
         Launcher.$RunningIds.sink { [weak self] Ids in
+            let Previous = self?.RunningIds ?? []
             self?.RunningIds = Ids
             self?.UpdateSleepActivity()
             self?.UpdateAchievementTimer(RunningIds: Ids)
+            if !Previous.subtracting(Ids).isEmpty {
+                self?.ProcessPendingInstallations()
+                self?.CheckGameUpdates()
+            }
         }.store(in: &Observers)
         Launcher.$ErrorMessage.compactMap { $0 }.sink { [weak self] in self?.ErrorMessage = $0 }.store(in: &Observers)
         Launcher.$Failure.compactMap { $0 }.sink { [weak self] Failure in
             self?.GameFailure = Failure
+            self?.Notifications.Post("Game closed unexpectedly", Message: "\(Failure.GameName): \(Failure.Summary)", Kind: "failure")
             NSApp.unhide(nil)
             NSApp.activate(ignoringOtherApps: true)
         }.store(in: &Observers)
@@ -226,8 +238,6 @@ final class AppStore: ObservableObject {
             if !Updated.isEmpty { MacCompatibilityBySteamId = Updated }
         }
         if Settings.AutoExtract {
-            // Older builds mistook empty 7-Zip link fields for actual links.
-            // Retry only downloads stopped by that specific validation error.
             for Download in Downloads where Download.State == .Completed &&
                 Download.ErrorMessage == "Extraction failed: Archives containing links or special files are not extracted automatically." &&
                 FileManager.default.fileExists(atPath: Download.FileURL.path) {
@@ -235,6 +245,13 @@ final class AppStore: ObservableObject {
             }
         }
         if Settings.HasCompletedWelcome { RefreshCatalog(Force: false) }
+        SizeTask = Task {
+            for Game in LibraryStore.Games where Game.InstalledSizeBytes == nil && Game.IsInstalled {
+                if Task.isCancelled { break }
+                try? await LibraryStore.MeasureSize(Game.Id)
+            }
+        }
+        for Download in Downloads where Download.State == .Extracted && !Download.ImportCompleted { DownloadCompleted(Download) }
     }
 
     private func UpdateAchievementTimer(RunningIds: Set<UUID>) {
@@ -253,14 +270,7 @@ final class AppStore: ObservableObject {
                     Catalog: self.Games, RunningIds: self.Launcher.RunningIds)
                 for Unlock in Unlocks {
                     self.Notice = "Achievement unlocked in \(Unlock.GameName): \(Unlock.AchievementName)"
-                    let Center = UNUserNotificationCenter.current()
-                    let Granted = (try? await Center.requestAuthorization(options: [.alert, .sound])) ?? false
-                    guard Granted else { continue }
-                    let Content = UNMutableNotificationContent()
-                    Content.title = "Achievement Unlocked!"
-                    Content.body = "\(Unlock.GameName): \(Unlock.AchievementName)"
-                    Content.sound = .default
-                    try? await Center.add(UNNotificationRequest(identifier: UUID().uuidString, content: Content, trigger: nil))
+                    self.Notifications.Post("Achievement unlocked", Message: "\(Unlock.GameName): \(Unlock.AchievementName)", Kind: "achievement")
                 }
             }
         }
@@ -314,6 +324,10 @@ final class AppStore: ObservableObject {
                 Games = LoadedGames
                 CatalogMetadata = Snapshot.Metadata
                 CatalogWarning = Snapshot.Warning
+                CheckGameUpdates()
+                if let Latest = Snapshot.Metadata.AppVersion, VersionComparison.IsNewer(Latest, than: AppVersion.Current) {
+                    Notifications.Post("App update available", Message: "Ascendara \(Latest) is listed in the game index.", Kind: "update")
+                }
                 if let SelectedGame { self.SelectedGame = Games.first { $0.Id == SelectedGame.Id } ?? SelectedGame }
                 if let Id = PendingGameId {
                     PendingGameId = nil
@@ -405,7 +419,9 @@ final class AppStore: ObservableObject {
             Updated.ExecutablePath = URL.path
             Updated.DirectoryPath = URL.deletingLastPathComponent().path
             Updated.LaunchMode = LibraryService.DefaultLaunchMode(for: URL)
+            Updated.InstalledSizeBytes = nil; Updated.SizeMeasuredAt = nil
             try LibraryStore.Update(Updated)
+            Task { try? await LibraryStore.MeasureSize(Game.Id) }
         } catch { Report(error) }
     }
     func LaunchGame(_ Game: LibraryGame) {
@@ -428,7 +444,7 @@ final class AppStore: ObservableObject {
                 }
                 try LibraryStore.RecordLaunch(Game.Id)
                 if Settings.HideOnGameLaunch { NSApp.hide(nil) }
-            } catch is GameLaunchFailure { /* The full game log is shown separately. */ }
+            } catch is GameLaunchFailure {  }
             catch { Report(error) }
         }
     }
@@ -468,10 +484,25 @@ final class AppStore: ObservableObject {
         } catch { Report(error) }
     }
 
-    func StartDownload(_ Game: Game, Link: String) {
+    func StartDownload(_ Game: Game, Link: String, Installation: InstallationPlan? = nil, Interactive: Bool = true) {
+        if Installation == nil, let Installed = LibraryMatch(Game) {
+            Reinstall = ReinstallRequest(Game: Game, Installed: Installed, Link: Link)
+            return
+        }
+        if let Installation, RunningIds.contains(Installation.ReplaceGameId) || BusyGameIds.contains(Installation.ReplaceGameId) {
+            ErrorMessage = "Stop the game before reinstalling it."; return
+        }
+        if let Installation, DownloadStore.Downloads.contains(where: { $0.Installation?.ReplaceGameId == Installation.ReplaceGameId && ![.Failed, .Cancelled].contains($0.State) }) {
+            Notice = "A replacement installation is already in the download queue."; return
+        }
         guard let URL = URL(string: Link) else { ErrorMessage = "This download link is invalid."; return }
         guard ResolvingGameIds.insert(Game.Id).inserted else { return }
         if URL.scheme?.lowercased() == "magnet" {
+            if Installation != nil {
+                ResolvingGameIds.remove(Game.Id)
+                ErrorMessage = "Reinstalling from a torrent requires downloading it first, then choosing its installed executable in Game options. Choose a direct mirror for a managed reinstall."
+                return
+            }
             Task {
                 defer { ResolvingGameIds.remove(Game.Id) }
                 do {
@@ -506,30 +537,45 @@ final class AppStore: ObservableObject {
             var LastError: Error?
             for Candidate in Candidates {
                 do {
-                    Files = try await DownloadLinkResolver.Resolve(URL: Candidate)
+                    Files = try await DownloadLinkResolver.Resolve(URL: Candidate, Interactive: Interactive)
                     SelectedMirror = Candidate
                     break
-                } catch { LastError = error }
+                } catch is CancellationError { return }
+                catch { LastError = error }
             }
             guard let Files else {
                 Report(LastError ?? AppFailure.Message("No direct download mirror is available for this game."))
                 return
             }
+            var StartedIds: [UUID] = []
             do {
                 let BatchId = UUID()
                 let Directory = URLFromPath(Settings.DownloadDirectory)
                     .appendingPathComponent(RuntimePaths.SafeName(Game.Name), isDirectory: true)
                     .appendingPathComponent(String(BatchId.uuidString.prefix(8)), isDirectory: true)
-                for File in Files {
-                    _ = try DownloadStore.Start(Name: Game.Name, URL: File.URL, DestinationDirectory: Directory,
+                var KnownSizes = await DownloadLinkResolver.ContentLengths(Files)
+                if Files.count == 1, KnownSizes[0] == nil, Game.SizeGB > 0, Game.SizeGB < Double(Int64.max) / 1_073_741_824 {
+                    KnownSizes[0] = Int64(Game.SizeGB * 1_073_741_824)
+                }
+                let Required = KnownSizes.compactMap { $0 }.reduce(Int64(0)) { Total, Size in
+                    let (Next, Overflow) = Total.addingReportingOverflow(max(0, Size))
+                    return Overflow ? Int64.max : Next
+                }
+                try DownloadStore.CheckCapacity(at: Directory, Required: Required)
+                for (Index, File) in Files.enumerated() {
+                    let Id = try DownloadStore.Start(Name: Game.Name, URL: File.URL, DestinationDirectory: Directory,
                                                 CatalogId: Game.Id, FileName: File.FileName, BatchId: BatchId,
                                                 Version: Game.Version, RequestHeaders: File.Headers,
-                                                RequestCookies: File.Cookies)
+                                                RequestCookies: File.Cookies, EstimatedBytes: KnownSizes[Index], Installation: Installation)
+                    StartedIds.append(Id)
                 }
                 SelectedGame = nil
                 Route = .Downloads
                 if SelectedMirror != URL { Notice = "The selected host was unavailable. Ascendara started another mirror automatically." }
-            } catch { Report(error) }
+            } catch {
+                for Id in StartedIds { try? DownloadStore.Cancel(Id) }
+                Report(error)
+            }
         }
     }
     func StartDirectDownload(Name: String, Link: String) {
@@ -608,7 +654,11 @@ final class AppStore: ObservableObject {
         }
     }
     func ExtractDownload(_ Download: DownloadItem) {
-        Task { do { _ = try await DownloadStore.Extract(Download.Id) } catch { Report(error) } }
+        Task {
+            do { _ = try await DownloadStore.Extract(Download.Id, SpaceSaving: Settings.SpaceSavingExtraction,
+                Directory: Settings.ExtractionDirectory.isEmpty ? nil : URLFromPath(Settings.ExtractionDirectory)) }
+            catch { Notifications.Post("Extraction failed", Message: "\(Download.Name): \(error.localizedDescription)", Kind: "failure"); Report(error) }
+        }
     }
     func ImportDownload(_ Download: DownloadItem) {
         let Panel = NSOpenPanel()
@@ -617,11 +667,21 @@ final class AppStore: ObservableObject {
         guard Panel.runModal() == .OK, let URL = Panel.url else { return }
         do {
             let CatalogGame = Games.first { $0.Id == Download.CatalogId }
+            if let Plan = Download.Installation, let Path = Download.ExtractedPath {
+                guard !RunningIds.contains(Plan.ReplaceGameId), !BusyGameIds.contains(Plan.ReplaceGameId) else {
+                    throw RuntimeError.Message("Stop the game before replacing its installation.")
+                }
+                let Installed = try LibraryStore.ReplaceInstallation(Plan, From: Foundation.URL(fileURLWithPath: Path), Executable: URL, Version: Download.Version)
+                try DownloadStore.CommitInstallation(Download.Id, Path: Installed.ManagedFilesPath ?? Installed.DirectoryPath)
+                Route = .Library
+                return
+            }
             let ManagedDirectory = Download.ExtractedPath.map { URLFromPath($0) }
                 .flatMap { RuntimePaths.IsInside(URL, $0) ? $0 : nil }
             _ = try LibraryStore.ImportGame(Name: Download.Name, ExecutableURL: URL, CatalogId: Download.CatalogId,
                                             ImageURL: CatalogGame?.ArtworkURL?.absoluteString, Version: Download.Version,
                                             ManagedDirectory: ManagedDirectory)
+            if let Path = Download.ExtractedPath { try DownloadStore.CommitInstallation(Download.Id, Path: Path) }
             Route = .Library
         } catch { Report(error) }
     }
@@ -635,11 +695,16 @@ final class AppStore: ObservableObject {
             return
         }
         LastDownloadPublish = Date()
+        let PreviousDownloads = Downloads
         Downloads = Values
+        for Item in Values where Item.State == .Failed && !PreviousDownloads.contains(where: { $0.Id == Item.Id && $0.State == .Failed }) {
+            Notifications.Post("Download failed", Message: "\(Item.Name): \(Item.ErrorMessage ?? "Unknown error")", Kind: "failure")
+        }
         UpdateSleepActivity()
     }
     private func DownloadCompleted(_ Download: DownloadItem) {
-        if Download.State == .Completed && Settings.AutoExtract {
+        if Download.State == .Completed { Notifications.Post("Download complete", Message: Download.Name, Kind: "download") }
+        if Download.State == .Completed && (Settings.AutoExtract || Download.Installation != nil) {
             let Group = Download.BatchId.map { BatchId in DownloadStore.Downloads.filter { $0.BatchId == BatchId } } ?? [Download]
             guard Group.allSatisfy({ $0.State == .Completed || $0.State == .Extracted }) else { return }
             let Archives = Group.filter { File in
@@ -649,15 +714,36 @@ final class AppStore: ObservableObject {
             }.sorted { $0.CreatedAt < $1.CreatedAt }
             if let Archive = Archives.first, Archive.State == .Completed { ExtractDownload(Archive) }
         } else if Download.State == .Extracted {
+            if let Plan = Download.Installation, let Path = Download.ExtractedPath,
+               !FileManager.default.fileExists(atPath: Path),
+               let Installed = LibraryStore.Games.first(where: { $0.Id == Plan.ReplaceGameId && $0.ManagedFilesPath == Plan.DestinationPath && $0.Version == Download.Version }) {
+                do { try DownloadStore.CommitInstallation(Download.Id, Path: Installed.ManagedFilesPath ?? Installed.DirectoryPath) }
+                catch { Report(error) }
+                return
+            }
             if let Path = Download.ExtractedPath {
                 do {
                     let Directory = URL(fileURLWithPath: Path, isDirectory: true)
                     if let Executable = try LibraryStore.BestExecutable(in: Directory, GameName: Download.Name) {
+                        if let Plan = Download.Installation {
+                            guard !RunningIds.contains(Plan.ReplaceGameId), !BusyGameIds.contains(Plan.ReplaceGameId) else {
+                                Notice = "\(Download.Name) is ready to install. Stop the running game, then choose Finish installation in Downloads."
+                                return
+                            }
+                            let Installed = try LibraryStore.ReplaceInstallation(Plan, From: Directory, Executable: Executable, Version: Download.Version)
+                            try DownloadStore.CommitInstallation(Download.Id, Path: Installed.ManagedFilesPath ?? Installed.DirectoryPath)
+                            AvailableGameUpdates.removeValue(forKey: Installed.Id)
+                            Notifications.Post("Installation complete", Message: Installed.Name, Kind: "download")
+                            Notice = "\(Installed.Name) has been reinstalled."
+                            return
+                        }
                         let CatalogGame = Games.first { $0.Id == Download.CatalogId }
                         _ = try LibraryStore.ImportGame(Name: Download.Name, ExecutableURL: Executable,
                                                         CatalogId: Download.CatalogId, ImageURL: CatalogGame?.ArtworkURL?.absoluteString,
                                                         Version: Download.Version, ManagedDirectory: Directory)
+                        try DownloadStore.CommitInstallation(Download.Id, Path: Directory.path)
                         Notice = "\(Download.Name) is ready to play in your library."
+                        Notifications.Post("Ready to play", Message: Download.Name, Kind: "download")
                         return
                     }
                 } catch { Report(error); return }
@@ -706,6 +792,9 @@ final class AppStore: ObservableObject {
     }
     private func ApplySettings() {
         Theme.Name = Settings.Theme
+        Theme.Custom = Settings.CustomTheme
+        I18n.Use(Settings.Language)
+        Notifications.Configure(Settings)
         DownloadStore.MaximumConcurrentDownloads = Settings.ConcurrentDownloads
         DownloadStore.Configure(SingleStream: Settings.SingleStreamDownload,
                                 Threads: Settings.DownloadThreads,
@@ -725,6 +814,8 @@ final class AppStore: ObservableObject {
         }
     }
     func PrepareForExit() async {
+        SizeTask?.cancel()
+        AutomaticUpdateTask?.cancel()
         AchievementTimer?.invalidate()
         AchievementTimer = nil
         TorrentTimer?.invalidate()
@@ -834,8 +925,79 @@ final class AppStore: ObservableObject {
         Panel.canCreateDirectories = true
         return Panel.runModal() == .OK ? Panel.url : nil
     }
-    func Report(_ Error: Error) { ErrorMessage = Error.localizedDescription }
+    func Report(_ Error: Error) {
+        ErrorMessage = Error.localizedDescription
+        Notifications.Post("Operation failed", Message: Error.localizedDescription, Kind: "failure")
+    }
     func URLFromPath(_ Path: String) -> URL { URL(fileURLWithPath: (Path as NSString).expandingTildeInPath) }
+
+    func FinishInstallation(_ Download: DownloadItem) { DownloadCompleted(Download) }
+
+    private func ProcessPendingInstallations() {
+        for Download in DownloadStore.Downloads where Download.State == .Extracted && Download.Installation != nil {
+            DownloadCompleted(Download)
+        }
+    }
+
+    func RequestReinstall(_ Installed: LibraryGame) {
+        guard let Game = Games.first(where: { $0.Id == Installed.CatalogId }),
+              let Link = Game.DownloadLinks.keys.sorted().flatMap({ Game.DownloadLinks[$0] ?? [] })
+                .first(where: { ["http", "https"].contains(URL(string: $0)?.scheme?.lowercased() ?? "") }) else {
+            ErrorMessage = "No direct download is available in the active index for this game."
+            return
+        }
+        Reinstall = ReinstallRequest(Game: Game, Installed: Installed, Link: Link)
+    }
+
+    func CheckGameUpdates() {
+        var Updates: [UUID: Game] = [:]
+        for Installed in LibraryStore.Games {
+            guard let Latest = Games.first(where: { $0.Id == Installed.CatalogId }),
+                  let LatestVersion = Latest.Version, let InstalledVersion = Installed.Version,
+                  VersionComparison.IsNewer(LatestVersion, than: InstalledVersion) else { continue }
+            Updates[Installed.Id] = Latest
+        }
+        AvailableGameUpdates = Updates
+        guard Settings.AutomaticallyCheckGameUpdates else { return }
+        if !Updates.isEmpty { Notifications.Post("Game updates available", Message: "\(Updates.count) installed games have newer versions in the index.", Kind: "update") }
+        guard AutomaticUpdateTask == nil else { return }
+        AutomaticUpdateTask = Task {
+            defer { AutomaticUpdateTask = nil }
+            for Installed in LibraryStore.Games where Installed.AutomaticallyUpdate && Installed.IsManaged {
+                guard !Task.isCancelled, let Latest = Updates[Installed.Id],
+                      !RunningIds.contains(Installed.Id), !BusyGameIds.contains(Installed.Id),
+                      !DownloadStore.Downloads.contains(where: { $0.Installation?.ReplaceGameId == Installed.Id && ![.Failed, .Cancelled].contains($0.State) }),
+                      let Destination = Installed.ManagedFilesPath,
+                      let Link = Latest.DownloadLinks.keys.sorted().flatMap({ Latest.DownloadLinks[$0] ?? [] })
+                        .first(where: { ["http", "https"].contains(URL(string: $0)?.scheme?.lowercased() ?? "") }) else { continue }
+                StartDownload(Latest, Link: Link, Installation: InstallationPlan(ReplaceGameId: Installed.Id, DestinationPath: Destination), Interactive: false)
+                while ResolvingGameIds.contains(Latest.Id) && !Task.isCancelled { try? await Task.sleep(for: .milliseconds(250)) }
+            }
+        }
+    }
+
+    func MeasureLibrary() {
+        SizeTask?.cancel()
+        SizeTask = Task {
+            for Game in LibraryStore.Games where Game.IsInstalled {
+                if Task.isCancelled { return }
+                do { try await LibraryStore.MeasureSize(Game.Id) } catch { Report(error); return }
+            }
+            Notice = "Installed sizes refreshed."
+        }
+    }
+
+    func MoveGame(_ Game: LibraryGame) {
+        guard !RunningIds.contains(Game.Id), BusyGameIds.insert(Game.Id).inserted else { return }
+        guard let Parent = ChooseFolder(Title: "Move \(Game.Name) to…") else { BusyGameIds.remove(Game.Id); return }
+        Task {
+            defer { BusyGameIds.remove(Game.Id) }
+            do {
+                try await LibraryStore.MoveInstallation(Game.Id, To: Parent.appendingPathComponent(RuntimePaths.SafeName(Game.Name)))
+                Notice = "\(Game.Name) moved to \(Parent.path)."
+            } catch { Report(error) }
+        }
+    }
 
     func HandleURL(_ URL: URL) {
         guard let Link = DeepLink.Parse(URL) else { return }

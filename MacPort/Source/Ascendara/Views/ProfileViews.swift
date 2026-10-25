@@ -87,27 +87,27 @@ struct ProfileView: View {
                         .background(Theme.Accent, in: Circle())
                         .overlay(Circle().stroke(Theme.Background, lineWidth: 2))
                 }
-            }.buttonStyle(.plain).help("Change profile image or emoji")
+            }.buttonStyle(.plain).help(I18n.T("Change profile image or emoji"))
                 .popover(isPresented: $ShowAvatarPicker, arrowEdge: .trailing) { AvatarPicker }
 
             VStack(alignment: .leading, spacing: 20) {
                 HStack(spacing: 9) {
                     if EditingName {
-                        TextField("Display name", text: $NameDraft).textFieldStyle(.roundedBorder)
+                        TextField(I18n.T("Display name"), text: $NameDraft).textFieldStyle(.roundedBorder)
                             .frame(width: 230).onSubmit(SaveName)
-                        Button("Save", action: SaveName).buttonStyle(SecondaryButtonStyle())
-                        Button("Cancel") { EditingName = false }.buttonStyle(.plain)
+                        Button(I18n.T("Save"), action: SaveName).buttonStyle(SecondaryButtonStyle())
+                        Button(I18n.T("Cancel")) { EditingName = false }.buttonStyle(.plain)
                     } else {
                         Text(DisplayName).font(.system(size: 27, weight: .bold)).foregroundStyle(Theme.Accent)
                         Button {
                             NameDraft = Store.Settings.DisplayName
                             EditingName = true
                         } label: { Image(systemName: "pencil") }
-                            .buttonStyle(.plain).help("Edit profile name")
+                            .buttonStyle(.plain).help(I18n.T("Edit profile name"))
                     }
                 }
                 if let JoinDate {
-                    Text("You started using Ascendara on \(ProfileDateFormatter.Join.string(from: JoinDate))")
+                    Text(I18n.Interpolated("You started using Ascendara on \(ProfileDateFormatter.Join.string(from: JoinDate))"))
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(Theme.Background)
                         .padding(.horizontal, 15).padding(.vertical, 6)
@@ -135,10 +135,10 @@ struct ProfileView: View {
             }.padding(13).background(Theme.Card, in: RoundedRectangle(cornerRadius: 10))
 
             Button { UploadAvatarImage() } label: {
-                Label("Upload a profile image", systemImage: "square.and.arrow.up")
+                Label(I18n.T("Upload a profile image"), systemImage: "square.and.arrow.up")
                     .frame(maxWidth: .infinity)
             }.buttonStyle(SecondaryButtonStyle())
-            Text("PNG, JPG, GIF, etc., up to 50 MB").font(.system(size: 10)).foregroundStyle(Theme.SecondaryText)
+            Text(I18n.T("PNG, JPG, GIF, etc., up to 50 MB")).font(.system(size: 10)).foregroundStyle(Theme.SecondaryText)
             Divider()
             HStack(spacing: 6) {
                 ForEach(EmojiCategories.indices, id: \.self) { Index in
@@ -188,20 +188,20 @@ struct ProfileView: View {
     private var StatsColumn: some View {
         ProfilePanel {
             VStack(alignment: .leading, spacing: 17) {
-                Label("Profile Stats", systemImage: "sparkles")
+                Label(I18n.T("Profile Stats"), systemImage: "sparkles")
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(Theme.Foreground)
                 ProfileInset {
                     VStack(spacing: 12) {
                         HStack {
-                            Label("Level", systemImage: "sparkles")
+                            Label(I18n.T("Level"), systemImage: "sparkles")
                             Spacer()
-                            Text("\(LevelProgress.Level)").foregroundStyle(Theme.Accent)
+                            Text(I18n.Interpolated("\(LevelProgress.Level)")).foregroundStyle(Theme.Accent)
                         }.font(.system(size: 13, weight: .semibold))
                         HStack {
-                            Text("\(Int(LevelProgress.Current.rounded())) / \(Int(LevelProgress.Needed.rounded())) XP")
+                            Text(I18n.Interpolated("\(Int(LevelProgress.Current.rounded())) / \(Int(LevelProgress.Needed.rounded())) XP"))
                             Spacer()
-                            Text("\(Int(LevelProgress.Percent.rounded()))%")
+                            Text(I18n.Interpolated("\(Int(LevelProgress.Percent.rounded()))%"))
                         }.font(.system(size: 11)).foregroundStyle(Theme.SecondaryText)
                         ProgressView(value: LevelProgress.Percent, total: 100).tint(Theme.Accent)
                         Divider()
@@ -213,11 +213,11 @@ struct ProfileView: View {
                 }
                 ProfileInset {
                     VStack(spacing: 11) {
-                        Label("Private Notes", systemImage: "face.smiling")
+                        Label(I18n.T("Private Notes"), systemImage: "face.smiling")
                             .font(.system(size: 13, weight: .semibold)).frame(maxWidth: .infinity, alignment: .leading)
                         ZStack(alignment: .topLeading) {
                             if Notes.isEmpty {
-                                Text("Write down something to keep in mind for later...")
+                                Text(I18n.T("Write down something to keep in mind for later..."))
                                     .font(.system(size: 12)).foregroundStyle(Theme.SecondaryText)
                                     .padding(.horizontal, 15).padding(.top, 14)
                                     .allowsHitTesting(false)
@@ -229,10 +229,10 @@ struct ProfileView: View {
                                 .background(Theme.Background.opacity(0.55), in: RoundedRectangle(cornerRadius: 8))
                                 .overlay(RoundedRectangle(cornerRadius: 8).stroke(Theme.Border))
                         }
-                        Text("Only saved locally").font(.system(size: 11))
+                        Text(I18n.T("Only saved locally")).font(.system(size: 11))
                             .foregroundStyle(Theme.SecondaryText).frame(maxWidth: .infinity)
                         Divider()
-                        Label("Device", systemImage: "desktopcomputer")
+                        Label(I18n.T("Device"), systemImage: "desktopcomputer")
                             .font(.system(size: 13, weight: .semibold)).frame(maxWidth: .infinity, alignment: .leading)
                         ProfileRow("Platform", "darwin", "desktopcomputer")
                         ProfileRow("OS", ProcessInfo.processInfo.operatingSystemVersionString, "externaldrive")
@@ -245,7 +245,7 @@ struct ProfileView: View {
                 ProfileInset {
                     VStack(spacing: 13) {
                         HStack {
-                            Label("Achievements", systemImage: "trophy").font(.system(size: 13, weight: .semibold))
+                            Label(I18n.T("Achievements"), systemImage: "trophy").font(.system(size: 13, weight: .semibold))
                             Spacer()
                             Text(Achievements.isEmpty ? "None" : "Top \(Achievements.count)")
                                 .font(.system(size: 11)).foregroundStyle(Theme.SecondaryText)
@@ -275,11 +275,11 @@ struct ProfileView: View {
 
     private func AchievementCell(Rank: Int, Entry: ProfileAchievement?) -> some View {
         VStack(spacing: 4) {
-            Text("#\(Rank)").font(.system(size: Rank == 1 ? 12 : 11, weight: .semibold))
+            Text(I18n.Interpolated("#\(Rank)")).font(.system(size: Rank == 1 ? 12 : 11, weight: .semibold))
             Text(Entry?.Name ?? "—").font(.system(size: Rank == 1 ? 12 : 11, weight: .semibold))
                 .lineLimit(1).frame(maxWidth: .infinity)
             if let Entry {
-                Text("\(Entry.Unlocked)/\(Entry.Total)").font(.system(size: 10))
+                Text(I18n.Interpolated("\(Entry.Unlocked)/\(Entry.Total)")).font(.system(size: 10))
             }
         }
         .foregroundStyle(Theme.SecondaryText).padding(5)
@@ -289,16 +289,16 @@ struct ProfileView: View {
         ProfilePanel {
             VStack(alignment: .leading, spacing: 16) {
                 HStack {
-                    Label("Games You Play", systemImage: "gamecontroller")
+                    Label(I18n.T("Games You Play"), systemImage: "gamecontroller")
                         .font(.system(size: 15, weight: .semibold))
                     Spacer()
-                    Text("\(Played.count) Games Played").font(.system(size: 12))
+                    Text(I18n.Interpolated("\(Played.count) Games Played")).font(.system(size: 12))
                         .foregroundStyle(Theme.SecondaryText)
                 }
                 ScrollView {
                     if Played.isEmpty {
-                        ProfileEmpty(Symbol: "gamecontroller", Title: "No Games",
-                                     Message: "Hey, play some games already! Your profile is still empty!")
+                        ProfileEmpty(Symbol: "gamecontroller", Title: I18n.T("No Games"),
+                                     Message: I18n.T("Hey, play some games already! Your profile is still empty!"))
                             .frame(height: 330)
                     } else {
                         LazyVGrid(columns: [GridItem(.adaptive(minimum: 190), spacing: 12)], spacing: 12) {
@@ -327,15 +327,15 @@ struct ProfileView: View {
         ProfilePanel {
             VStack(alignment: .leading, spacing: 16) {
                 HStack {
-                    Label("Download History", systemImage: "arrow.down.doc")
+                    Label(I18n.T("Download History"), systemImage: "arrow.down.doc")
                         .font(.system(size: 15, weight: .semibold))
                     Spacer()
-                    Text("\(History.count)").font(.system(size: 12)).foregroundStyle(Theme.SecondaryText)
+                    Text(I18n.Interpolated("\(History.count)")).font(.system(size: 12)).foregroundStyle(Theme.SecondaryText)
                 }
                 ScrollView {
                     if History.isEmpty {
-                        ProfileEmpty(Symbol: "archivebox", Title: "No download history yet",
-                                     Message: "Your game download history will appear here")
+                        ProfileEmpty(Symbol: "archivebox", Title: I18n.T("No download history yet"),
+                                     Message: I18n.T("Your game download history will appear here"))
                             .frame(height: 330)
                     } else {
                         LazyVStack(spacing: 11) {
@@ -351,7 +351,7 @@ struct ProfileView: View {
                                     Spacer()
                                     Button { Store.RemoveDownload(Item) } label: { Image(systemName: "trash") }
                                         .buttonStyle(.plain).foregroundStyle(Theme.SecondaryText)
-                                        .help("Clear \(Item.Name) from history")
+                                        .help(I18n.Interpolated("Clear \(Item.Name) from history"))
                                 }
                                 .padding(12).background(Theme.Card.opacity(0.55), in: RoundedRectangle(cornerRadius: 8))
                                 .overlay(RoundedRectangle(cornerRadius: 8).stroke(Theme.Border.opacity(0.55)))
@@ -387,7 +387,7 @@ struct ProfileView: View {
                 Text(Name).foregroundStyle(Theme.SecondaryText)
             }
             Spacer(minLength: 5)
-            Text(Value).fontWeight(.semibold).lineLimit(1)
+            Text(I18n.T(Value)).fontWeight(.semibold).lineLimit(1)
         }.font(.system(size: 11))
     }
 
@@ -570,8 +570,8 @@ private struct ProfileEmpty: View {
     var body: some View {
         VStack(spacing: 9) {
             Image(systemName: Symbol).font(.system(size: 32)).foregroundStyle(Theme.SecondaryText.opacity(0.7))
-            Text(Title).font(.system(size: 15, weight: .semibold))
-            Text(Message).font(.system(size: 12)).foregroundStyle(Theme.SecondaryText).multilineTextAlignment(.center)
+            Text(I18n.T(Title)).font(.system(size: 15, weight: .semibold))
+            Text(I18n.T(Message)).font(.system(size: 12)).foregroundStyle(Theme.SecondaryText).multilineTextAlignment(.center)
         }.frame(maxWidth: .infinity)
     }
 }

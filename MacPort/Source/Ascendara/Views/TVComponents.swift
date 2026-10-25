@@ -47,10 +47,10 @@ struct TVPageHeading: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12 * Scale) {
-            Text(Title).font(.system(size: 44 * Scale, weight: .bold)).foregroundStyle(.white)
+            Text(I18n.T(Title)).font(.system(size: 44 * Scale, weight: .bold)).foregroundStyle(.white)
                 .accessibilityAddTraits(.isHeader)
             if !Subtitle.isEmpty {
-                Text(Subtitle).font(.system(size: 19 * Scale)).foregroundStyle(TVStyle.Secondary)
+                Text(I18n.T(Subtitle)).font(.system(size: 19 * Scale)).foregroundStyle(TVStyle.Secondary)
             }
         }.frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -77,8 +77,8 @@ struct TVEmptyState: View {
     var body: some View {
         VStack(spacing: 20 * Scale) {
             Image(systemName: Symbol).font(.system(size: 56 * Scale, weight: .light)).foregroundStyle(TVStyle.Accent)
-            Text(Title).font(.system(size: 30 * Scale, weight: .semibold)).foregroundStyle(.white)
-            Text(Message).font(.system(size: 20 * Scale)).foregroundStyle(TVStyle.Secondary)
+            Text(I18n.T(Title)).font(.system(size: 30 * Scale, weight: .semibold)).foregroundStyle(.white)
+            Text(I18n.T(Message)).font(.system(size: 20 * Scale)).foregroundStyle(TVStyle.Secondary)
                 .multilineTextAlignment(.center).frame(maxWidth: 650 * Scale)
         }.frame(maxWidth: .infinity).padding(.vertical, 65 * Scale).padding(.horizontal, 32 * Scale)
     }
@@ -104,7 +104,7 @@ struct TVGameTile: View {
                 Text(Name).font(.system(size: 19 * Scale, weight: .semibold)).foregroundStyle(.white).lineLimit(2)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 if !Subtitle.isEmpty {
-                    Text(Subtitle).font(.system(size: 15 * Scale)).foregroundStyle(TVStyle.Secondary).lineLimit(1)
+                    Text(I18n.T(Subtitle)).font(.system(size: 15 * Scale)).foregroundStyle(TVStyle.Secondary).lineLimit(1)
                 }
             }.frame(width: Width, alignment: .topLeading)
                 .scaleEffect(MotionEnabled && Hovering ? 1.025 : 1)
@@ -174,7 +174,7 @@ struct TVIntegrationTabs: View {
     var body: some View {
         HStack(spacing: 14 * Scale) {
             ForEach(Titles, id: \.self) { Title in
-                Button(Title) { Selection = Title }
+                Button(I18n.T(Title)) { Selection = Title }
                     .buttonStyle(TVButtonStyle(Selected: Selection == Title))
             }
             Spacer(minLength: 0)

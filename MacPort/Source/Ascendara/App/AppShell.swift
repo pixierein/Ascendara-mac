@@ -50,7 +50,7 @@ struct AppShell: View {
                         Text(Notice).font(.system(size: Store.ShowingBigPicture ? 20 : 13)).textSelection(.enabled)
                         Button { Store.Notice = nil } label: {
                             Image(systemName: "xmark").frame(width: Store.ShowingBigPicture ? 40 : 20, height: Store.ShowingBigPicture ? 40 : 20)
-                        }.buttonStyle(MotionButtonStyle()).accessibilityLabel("Dismiss notice")
+                        }.buttonStyle(MotionButtonStyle()).accessibilityLabel(I18n.T("Dismiss notice"))
                     }
                     .padding(14).background(Theme.Card, in: RoundedRectangle(cornerRadius: 12))
                     .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.Border)).shadow(color: .black.opacity(0.1), radius: 15)
@@ -68,12 +68,17 @@ struct AppShell: View {
         .MotionAnimation(Store.Settings.Theme)
         .ignoresSafeArea(.container, edges: .top)
         .foregroundStyle(Theme.Foreground)
-        .alert("Ascendara", isPresented: Binding(get: { Store.ErrorMessage != nil }, set: { if !$0 { Store.ErrorMessage = nil } })) {
-            Button("OK") { Store.ErrorMessage = nil }
+        .alert(I18n.T("Ascendara"), isPresented: Binding(get: { Store.ErrorMessage != nil }, set: { if !$0 { Store.ErrorMessage = nil } })) {
+            Button(I18n.T("OK")) { Store.ErrorMessage = nil }
         } message: { Text(Store.ErrorMessage ?? "") }
         .sheet(item: $Store.GameFailure) { Report in
             GameFailureView(Report: Report)
         }
+        .sheet(item: $Store.Reinstall) { Request in
+            ReinstallView(Request: Request).environmentObject(Store)
+        }
+        .environment(\.locale, Locale(identifier: Store.Settings.Language))
+        .environment(\.layoutDirection, I18n.IsRTL ? .rightToLeft : .leftToRight)
         .onChange(of: Store.ShowingWelcome) { _, Active in
             if Active && Store.ShowingBigPicture { Store.ShowingBigPicture = false }
         }
@@ -147,30 +152,30 @@ private struct GameFailureView: View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("\(Report.GameName) closed unexpectedly")
+                    Text(I18n.Interpolated("\(Report.GameName) closed unexpectedly"))
                         .font(.title2.bold())
                     Text(Report.Summary).foregroundStyle(Theme.SecondaryText)
                 }
                 Spacer()
-                Button("Close") { Dismiss() }
+                Button(I18n.T("Close")) { Dismiss() }
             }
             TextEditor(text: .constant(Log))
                 .font(.system(size: 12, design: .monospaced))
                 .scrollContentBackground(.hidden)
                 .background(Theme.Background, in: RoundedRectangle(cornerRadius: 8))
                 .overlay(RoundedRectangle(cornerRadius: 8).stroke(Theme.Border))
-                .accessibilityLabel("Complete game and compatibility logs")
+                .accessibilityLabel(I18n.T("Complete game and compatibility logs"))
             HStack {
-                Button("Reload Log") { Task { await LoadLog() } }
-                Button("Copy Full Log") {
+                Button(I18n.T("Reload Log")) { Task { await LoadLog() } }
+                Button(I18n.T("Copy Full Log")) {
                     NSPasteboard.general.clearContents()
                     NSPasteboard.general.setString(Log, forType: .string)
                 }
-                Button("Show Log File") {
+                Button(I18n.T("Show Log File")) {
                     NSWorkspace.shared.activateFileViewerSelecting([Report.LaunchLog])
                 }
                 if let DetailLog = Report.DetailLog {
-                    Button("Show Wine Log") {
+                    Button(I18n.T("Show Wine Log")) {
                         NSWorkspace.shared.activateFileViewerSelecting([DetailLog])
                     }
                 }
@@ -218,8 +223,8 @@ struct AppTitlebar: View {
     var body: some View {
         HStack(spacing: 0) {
             HStack(spacing: 6) {
-                WindowButton(Symbol: "xmark", Title: "Close window", IsClose: true) { Window.Close() }
-                WindowButton(Symbol: "minus", Title: "Minimize window") { Window.Minimize() }
+                WindowButton(Symbol: "xmark", Title: I18n.T("Close window"), IsClose: true) { Window.Close() }
+                WindowButton(Symbol: "minus", Title: I18n.T("Minimize window")) { Window.Minimize() }
                     .disabled(Window.IsFullscreen)
                 WindowButton(Symbol: Window.IsZoomed ? "square.on.square" : "square",
                              Title: Window.IsZoomed ? "Restore window" : "Maximize window") { Window.ToggleZoom() }
@@ -238,7 +243,7 @@ struct AppTitlebar: View {
                     Image(nsImage: Icon).resizable().scaledToFit().frame(width: 27, height: 27)
                         .accessibilityHidden(true)
                 }
-                Text("Ascendara").font(.system(size: 15, weight: .bold))
+                Text(I18n.T("Ascendara")).font(.system(size: 15, weight: .bold))
             }
             .allowsHitTesting(false)
         }
@@ -250,8 +255,9 @@ struct AppTitlebar: View {
 
     private var Actions: some View {
         HStack(spacing: 12) {
+            NotificationBell(Center: Store.Notifications)
             if Store.IsLoading {
-                ProgressView().controlSize(.small).help("Refreshing catalogue")
+                ProgressView().controlSize(.small).help(I18n.T("Refreshing catalogue"))
             } else {
                 Circle().fill(Store.CatalogWarning == nil ? Color.green : Color.orange)
                     .frame(width: 6, height: 6)
@@ -260,16 +266,16 @@ struct AppTitlebar: View {
             Button { Store.SelectedGame = nil; Store.Route = .Search } label: {
                 HStack(spacing: 7) {
                     Image(systemName: "magnifyingglass")
-                    Text("Search anything")
-                    Text("⌘K").foregroundStyle(Theme.SecondaryText)
+                    Text(I18n.T("Search anything"))
+                    Text(I18n.T("⌘K")).foregroundStyle(Theme.SecondaryText)
                 }
                 .font(.system(size: 12))
                 .padding(.horizontal, 12).frame(height: 30)
                 .background(Theme.Card.opacity(0.7), in: RoundedRectangle(cornerRadius: 7))
-            }.buttonStyle(MotionButtonStyle()).accessibilityLabel("Search games")
+            }.buttonStyle(MotionButtonStyle()).accessibilityLabel(I18n.T("Search games"))
             Button { Store.ShowingBigPicture = true } label: {
                 Image(systemName: "gamecontroller").font(.system(size: 15)).frame(width: 30, height: 30)
-            }.buttonStyle(MotionButtonStyle()).help("Big Picture").accessibilityLabel("Big Picture")
+            }.buttonStyle(MotionButtonStyle()).help(I18n.T("Big Picture")).accessibilityLabel(I18n.T("Big Picture"))
         }
     }
 }

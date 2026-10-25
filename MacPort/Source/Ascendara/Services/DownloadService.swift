@@ -1,6 +1,7 @@
 import Foundation
 import Combine
 import Darwin
+import AscendaraCore
 
 private struct WorkerJob: Encodable {
     let Id: UUID
@@ -9,6 +10,7 @@ private struct WorkerJob: Encodable {
     let Headers: [String: String]
     let Connections: Int
     let SpeedLimitBytesPerSecond: Int64
+    let EstimatedBytes: Int64?
 }
 
 private struct WorkerStatus: Decodable {
@@ -24,6 +26,7 @@ private struct WorkerStatus: Decodable {
 final class DownloadService: NSObject, ObservableObject {
     @Published private(set) var Downloads: [DownloadItem] = []
     @Published private(set) var ErrorMessage: String?
+    @Published private(set) var QueuePaused = false
     var MaximumConcurrentDownloads = 2 { didSet { Pump() } }
     private var TransferConnections = 1
     private var TransferSpeedLimit: Int64 = 0
@@ -48,7 +51,7 @@ final class DownloadService: NSObject, ObservableObject {
         let Configuration = URLSessionConfiguration.default
         Configuration.timeoutIntervalForRequest = 60
         Configuration.timeoutIntervalForResource = 7 * 24 * 60 * 60
-        Configuration.httpAdditionalHeaders = ["User-Agent": "Ascendara-Native/1.0"]
+        Configuration.httpAdditionalHeaders = ["User-Agent": "Ascendara-Native/" + AppVersion.Current]
         return URLSession(configuration: Configuration, delegate: Delegate, delegateQueue: nil)
     }()
     private var MetadataURL: URL { StorageDirectory.appendingPathComponent("downloads.json") }
@@ -57,17 +60,39 @@ final class DownloadService: NSObject, ObservableObject {
         self.StorageDirectory = StorageDirectory
         super.init()
         Delegate.Owner = self
+        QueuePaused = (try? AppPaths.Read(Bool.self, From: StorageDirectory.appendingPathComponent("queue-paused.json"))) ?? false
         do {
             if FileManager.default.fileExists(atPath: MetadataURL.path) {
                 Downloads = try JSONDecoder().decode([DownloadItem].self, from: Data(contentsOf: MetadataURL))
                 for Index in Downloads.indices where Downloads[Index].IsActive {
-                    if FileManager.default.fileExists(atPath: WorkerDirectory(Downloads[Index].Id).appendingPathComponent("job.json").path) {
+                    if Downloads[Index].State != .Extracting && FileManager.default.fileExists(atPath: WorkerDirectory(Downloads[Index].Id).appendingPathComponent("job.json").path) {
                         continue
                     }
                     let WasExtracting = Downloads[Index].State == .Extracting
-                    Downloads[Index].State = WasExtracting ? .Completed : .Paused
+                    if WasExtracting, let Completed = ArchiveStorage.CompletedPath(Downloads[Index].FileURL) {
+                        let Sources = ArchiveStorage.Sources(Downloads[Index].FileURL)
+                        for Part in Downloads.indices where Sources.contains(Downloads[Part].FileURL) {
+                            Downloads[Part].State = .Extracted
+                            Downloads[Part].ExtractedPath = Completed.path
+                            Downloads[Part].ErrorMessage = nil
+                        }
+                        ArchiveStorage.RemoveConsumedSources(Downloads[Index].FileURL)
+                        continue
+                    }
+                    let Consumed = WasExtracting && FileManager.default.fileExists(atPath: ArchiveStorage.Marker(Downloads[Index].FileURL).path)
+                    Downloads[Index].State = Consumed ? .Failed : WasExtracting ? .Completed : .Paused
+                    if Consumed {
+                        ArchiveStorage.CleanInterruptedStaging(Downloads[Index].FileURL)
+                        let Sources = ArchiveStorage.Sources(Downloads[Index].FileURL)
+                        for Part in Downloads.indices where Sources.contains(Downloads[Part].FileURL) {
+                            Downloads[Part].State = .Failed
+                            Downloads[Part].ReceivedBytes = 0
+                            Downloads[Part].ErrorMessage = "Space-saving extraction was interrupted. Download every archive volume again."
+                        }
+                        ArchiveStorage.RemoveConsumedSources(Downloads[Index].FileURL)
+                    }
                     Downloads[Index].BytesPerSecond = 0
-                    Downloads[Index].ErrorMessage = WasExtracting ? "Extraction was interrupted. Extract the downloaded archive again." : "Interrupted when Ascendara closed. Resume to continue; servers without resume support restart the transfer."
+                    Downloads[Index].ErrorMessage = Consumed ? "Space-saving extraction was interrupted. Resume to download the archive again." : WasExtracting ? "Extraction was interrupted. Extract the downloaded archive again." : "Interrupted when Ascendara closed. Resume to continue; servers without resume support restart the transfer."
                 }
             }
         } catch {
@@ -92,21 +117,21 @@ final class DownloadService: NSObject, ObservableObject {
         }
     }
 
-    /// Mirror the original downloader's single-stream, thread-count and rate
-    /// settings. Existing transfers keep their settings; newly queued workers
-    /// use the latest values.
     func Configure(SingleStream: Bool, Threads: Int, SpeedLimitKBps: Int) {
         TransferConnections = SingleStream ? 1 : max(1, min(16, Threads))
         TransferSpeedLimit = Int64(max(0, SpeedLimitKBps)) * 1024
     }
 
     @discardableResult
-    func Start(Name: String, URL Source: URL, DestinationDirectory: URL, CatalogId: String? = nil, FileName: String? = nil, BatchId: UUID? = nil, Version: String? = nil, RequestHeaders: [String: String] = [:], RequestCookies: [DownloadCookie] = []) throws -> UUID {
+    func Start(Name: String, URL Source: URL, DestinationDirectory: URL, CatalogId: String? = nil, FileName: String? = nil, BatchId: UUID? = nil, Version: String? = nil, RequestHeaders: [String: String] = [:], RequestCookies: [DownloadCookie] = [], EstimatedBytes: Int64? = nil, Installation: InstallationPlan? = nil) throws -> UUID {
         guard ["http", "https"].contains(Source.scheme?.lowercased() ?? ""), Source.host != nil else {
             throw RuntimeError.Message("Use a direct HTTP or HTTPS download link. Magnet links require a torrent client.")
         }
         guard ErrorMessage == nil else { throw RuntimeError.Message(ErrorMessage!) }
         try RuntimePaths.CreateDirectory(DestinationDirectory)
+        if let EstimatedBytes, EstimatedBytes > 0 {
+            try CheckCapacity(at: DestinationDirectory, Required: EstimatedBytes)
+        }
         var NameOnDisk = RuntimePaths.SafeName(FileName ?? (Source.lastPathComponent.isEmpty ? Name + ".download" : Source.lastPathComponent))
         if FileManager.default.fileExists(atPath: DestinationDirectory.appendingPathComponent(NameOnDisk).path) || Downloads.contains(where: { $0.DestinationDirectory == DestinationDirectory && $0.FileName == NameOnDisk }) {
             NameOnDisk = String(UUID().uuidString.prefix(8)) + "-" + NameOnDisk
@@ -115,14 +140,26 @@ final class DownloadService: NSObject, ObservableObject {
         Item.CatalogId = CatalogId
         Item.BatchId = BatchId
         Item.Version = Version
-        // Only request headers needed by a provider are persisted. A remote page
-        // cannot set arbitrary headers on our download manager.
+        Item.EstimatedBytes = EstimatedBytes
+        Item.TotalBytes = EstimatedBytes ?? 0
+        Item.Installation = Installation
         Item.RequestHeaders = RequestHeaders.filter { ["user-agent", "referer", "origin"].contains($0.key.lowercased()) }
         if !RequestCookies.isEmpty { try WriteCookieJar(RequestCookies, For: Item.Id) }
         Downloads.append(Item)
         try Save()
         Pump()
         return Item.Id
+    }
+
+    func CheckCapacity(at Directory: URL, Required: Int64) throws {
+        let Volume = try StorageBudget.Volume(at: Directory)
+        let Reserved = Downloads.filter { $0.IsActive && (try? StorageBudget.Volume(at: $0.DestinationDirectory)) == Volume }
+            .reduce(Int64(0)) { Current, Item in
+                let Remaining = max(0, max(Item.EstimatedBytes ?? 0, Item.TotalBytes) - max(0, Item.ReceivedBytes))
+                let (Total, Overflow) = Current.addingReportingOverflow(Remaining)
+                return Overflow ? Int64.max : Total
+            }
+        try StorageBudget.Check(at: Directory, Remaining: Required, Reserved: Reserved)
     }
 
     func Pause(_ Id: UUID) throws {
@@ -191,7 +228,11 @@ final class DownloadService: NSObject, ObservableObject {
             if let Path = Item.ExtractedPath, !Path.isEmpty { Files.append(URL(fileURLWithPath: Path)) }
             let Existing = Files.filter { FileManager.default.fileExists(atPath: $0.path) }
             for File in Existing {
-                guard RuntimePaths.IsInside(File, Item.DestinationDirectory) else {
+                let Extracted = Item.ExtractedPath.map { URL(fileURLWithPath: $0).standardizedFileURL }
+                let ExpectedName = RuntimePaths.SafeName(Item.Name)
+                let OwnExtraction = File.standardizedFileURL == Extracted && File.pathComponents.count > 3 &&
+                    (File.lastPathComponent == ExpectedName || File.lastPathComponent == ExpectedName + "-" + String(Item.Id.uuidString.prefix(8)))
+                guard RuntimePaths.IsInside(File, Item.DestinationDirectory) || OwnExtraction else {
                     throw RuntimeError.Message("A download file is outside its download folder and was not moved to the Trash.")
                 }
             }
@@ -217,23 +258,67 @@ final class DownloadService: NSObject, ObservableObject {
         WorkerPIDs.removeValue(forKey: Id)
         try? FileManager.default.removeItem(at: WorkerDirectory(Id))
         if let Index = Index(Id) {
+            try? FileManager.default.removeItem(at: Downloads[Index].DestinationDirectory.appendingPathComponent(".ascendara-transfer-" + Id.uuidString))
             Downloads[Index].ReceivedBytes = 0
             Downloads[Index].BytesPerSecond = 0
-            // A transfer can finish just as Cancel is pressed. Its destination
-            // belongs to this job, so do not leave an untracked archive behind.
             try? FileManager.default.removeItem(at: Downloads[Index].FileURL)
         }
     }
 
     func PauseAll() {
+        SetQueuePaused(true)
         for Id in Downloads.filter({ [.Downloading, .Queued].contains($0.State) }).map(\.Id) {
             do { try Pause(Id) } catch { ErrorMessage = error.localizedDescription }
         }
     }
 
+    func SetQueuePaused(_ Paused: Bool) {
+        QueuePaused = Paused
+        do { try AppPaths.Write(Paused, To: StorageDirectory.appendingPathComponent("queue-paused.json")) }
+        catch { ErrorMessage = error.localizedDescription }
+        if !Paused { Pump() }
+    }
+
+    func ResumeAll() {
+        for Index in Downloads.indices where Downloads[Index].State == .Paused && !Pausing.contains(Downloads[Index].Id) {
+            Downloads[Index].State = .Queued
+            Downloads[Index].ErrorMessage = nil
+        }
+        SetQueuePaused(false)
+        SaveChanges()
+    }
+
+    func RetryFailed() {
+        for Index in Downloads.indices where Downloads[Index].State == .Failed && !Pausing.contains(Downloads[Index].Id) {
+            Downloads[Index].State = .Queued; Downloads[Index].ErrorMessage = nil
+        }
+        SaveChanges(); Pump()
+    }
+
+    func Prioritize(_ Id: UUID) throws {
+        guard let Index = Index(Id), Downloads[Index].State == .Queued else { return }
+        let Item = Downloads.remove(at: Index)
+        Downloads.insert(Item, at: Downloads.firstIndex(where: { $0.State == .Queued }) ?? Downloads.count)
+        try Save()
+    }
+
+    func ClearFinished() throws {
+        for Id in Downloads.filter({ [.Completed, .Extracted, .Cancelled].contains($0.State) && $0.Installation == nil }).map(\.Id) {
+            try Remove(Id)
+        }
+    }
+
+    func CommitInstallation(_ Id: UUID, Path: String) throws {
+        guard let Item = Downloads.first(where: { $0.Id == Id }) else { return }
+        for Index in Downloads.indices where Downloads[Index].Id == Id || (Item.BatchId != nil && Downloads[Index].BatchId == Item.BatchId) {
+            Downloads[Index].ExtractedPath = Path
+            Downloads[Index].Installation = nil
+            Downloads[Index].ImportCompleted = true
+        }
+        try Save()
+    }
+
     func PrepareForExit() async {
-        // The signed worker is detached like Ascendara's upstream downloader.
-        // It owns its partial file and keeps transferring after the UI closes.
         for Id in Downloads.filter({ $0.State == .Downloading && !FileManager.default.fileExists(atPath: WorkerDirectory($0.Id).appendingPathComponent("job.json").path) }).map(\.Id) {
             try? Pause(Id)
         }
@@ -248,6 +333,7 @@ final class DownloadService: NSObject, ObservableObject {
 
     private func Pump() {
         guard !LoadFailed else { return }
+        guard !QueuePaused else { SaveChanges(); UpdateWorkerTimer(); return }
         let Limit = max(1, min(8, MaximumConcurrentDownloads))
         while Downloads.filter({ $0.State == .Downloading }).count < Limit,
               let Index = Downloads.firstIndex(where: { $0.State == .Queued }) {
@@ -290,7 +376,7 @@ final class DownloadService: NSObject, ObservableObject {
         try EnsurePrivateWorkerDirectory(Directory)
         let Job = WorkerJob(Id: Item.Id, URL: Item.SourceURL, Destination: Item.FileURL,
                             Headers: Item.RequestHeaders, Connections: TransferConnections,
-                            SpeedLimitBytesPerSecond: TransferSpeedLimit)
+                            SpeedLimitBytesPerSecond: TransferSpeedLimit, EstimatedBytes: Item.EstimatedBytes)
         let JobURL = Directory.appendingPathComponent("job.json")
         try JSONEncoder().encode(Job).write(to: JobURL, options: .atomic)
         _ = chmod(JobURL.path, S_IRUSR | S_IWUSR)
@@ -486,41 +572,73 @@ final class DownloadService: NSObject, ObservableObject {
     }
 
     @discardableResult
-    func Extract(_ Id: UUID) async throws -> URL {
-        guard let Index = Index(Id), [.Completed, .Extracted].contains(Downloads[Index].State) else { throw RuntimeError.Message("Finish the download before extracting it.") }
-        let Item = Downloads[Index]
-        let ArchiveParts = PartsForArchive(Item)
+    func Extract(_ Id: UUID, SpaceSaving: Bool = false, Directory: URL? = nil) async throws -> URL {
+        guard let Requested = Index(Id), [.Completed, .Extracted].contains(Downloads[Requested].State) else { throw RuntimeError.Message("Finish the download before extracting it.") }
+        let ArchiveParts = PartsForArchive(Downloads[Requested])
+        let Item = ArchiveParts.first(where: { Part in
+            let Name = Part.FileName.lowercased()
+            return Name.hasSuffix(".001") || Name.hasSuffix(".zip") ||
+                (Name.hasSuffix(".rar") && (Name.range(of: #"\.part[0-9]+\.rar$"#, options: .regularExpression) == nil || Name.range(of: #"\.part0*1\.rar$"#, options: .regularExpression) != nil))
+        }) ?? Downloads[Requested]
         guard ArchiveParts.allSatisfy({ [.Completed, .Extracted].contains($0.State) }) else {
             throw RuntimeError.Message("Finish downloading every archive part before extracting it.")
         }
-        let Destination = Item.DestinationDirectory.appendingPathComponent(RuntimePaths.SafeName(Item.Name), isDirectory: true)
+        let Destination = (Directory ?? Item.DestinationDirectory).appendingPathComponent(RuntimePaths.SafeName(Item.Name) + (Directory == nil ? "" : "-" + String(Item.Id.uuidString.prefix(8))), isDirectory: true)
+        try RuntimePaths.CreateDirectory(Destination.deletingLastPathComponent())
         guard !FileManager.default.fileExists(atPath: Destination.path) else { throw RuntimeError.Message("The destination already exists: \(Destination.path). Choose another location or move that folder first.") }
-        Downloads[Index].State = .Extracting
-        SaveChanges()
+        for Part in ArchiveParts {
+            if let PartIndex = self.Index(Part.Id) { Downloads[PartIndex].State = .Extracting }
+        }
         do {
-            try await ArchiveExtractor.Extract(Item.FileURL, To: Destination)
-            var CleanupErrors: [String] = []
-            for Part in ArchiveParts where FileManager.default.fileExists(atPath: Part.FileURL.path) {
-                do { try FileManager.default.removeItem(at: Part.FileURL) }
-                catch { CleanupErrors.append("\(Part.FileName): \(error.localizedDescription)") }
-            }
+            try Save()
+            try await ArchiveExtractor.Extract(Item.FileURL, To: Destination, SpaceSaving: SpaceSaving, Parts: ArchiveParts.map(\.FileURL))
             for Part in ArchiveParts {
                 guard let PartIndex = self.Index(Part.Id) else { continue }
                 Downloads[PartIndex].State = .Extracted
                 Downloads[PartIndex].ExtractedPath = Destination.path
                 Downloads[PartIndex].ErrorMessage = nil
             }
+            try Save()
+            var CleanupErrors: [String] = []
+            for Part in ArchiveParts where FileManager.default.fileExists(atPath: Part.FileURL.path) {
+                do { try FileManager.default.removeItem(at: Part.FileURL) }
+                catch { CleanupErrors.append("\(Part.FileName): \(error.localizedDescription)") }
+            }
+            try? FileManager.default.removeItem(at: ArchiveStorage.Marker(Item.FileURL))
             if let Index = self.Index(Id) {
                 if !CleanupErrors.isEmpty {
                     Downloads[Index].ErrorMessage = "Extracted, but could not delete the archive: " + CleanupErrors.joined(separator: "; ")
+                    SaveChanges()
                 }
-                SaveChanges()
                 OnCompleted?(Downloads[Index])
             }
             return Destination
         } catch {
+            if let Completed = ArchiveStorage.CompletedPath(Item.FileURL) {
+                if let Index = self.Index(Item.Id) {
+                    Downloads[Index].State = .Extracted
+                    Downloads[Index].ExtractedPath = Completed.path
+                    Downloads[Index].ErrorMessage = "Files were extracted, but download history could not be saved. Free some space and import the extracted game."
+                }
+                throw error
+            }
+            let Consumed = FileManager.default.fileExists(atPath: ArchiveStorage.Marker(Item.FileURL).path)
+            if Consumed {
+                for Part in ArchiveParts {
+                    guard let PartIndex = self.Index(Part.Id) else { continue }
+                    Downloads[PartIndex].State = .Failed
+                    Downloads[PartIndex].ReceivedBytes = 0
+                    Downloads[PartIndex].ErrorMessage = "Space-saving extraction failed. Download every archive volume again."
+                }
+                ArchiveStorage.RemoveConsumedSources(Item.FileURL)
+            } else {
+                for Part in ArchiveParts {
+                    if let PartIndex = self.Index(Part.Id) { Downloads[PartIndex].State = .Completed }
+                }
+            }
             if let Index = self.Index(Id) {
-                Downloads[Index].State = .Completed
+                Downloads[Index].State = Consumed ? .Failed : .Completed
+                if Consumed { Downloads[Index].ReceivedBytes = 0 }
                 Downloads[Index].ErrorMessage = "Extraction failed: \(error.localizedDescription)"
                 SaveChanges()
             }
@@ -532,14 +650,14 @@ final class DownloadService: NSObject, ObservableObject {
         guard let BatchId = Archive.BatchId else { return [Archive] }
         let Name = Archive.FileName.lowercased()
         let Pattern: String
-        if let PartOne = Name.range(of: #"\.part0*1\.rar$"#, options: .regularExpression) {
+        if let PartOne = Name.range(of: #"\.part[0-9]+\.rar$"#, options: .regularExpression) {
             Pattern = "^" + NSRegularExpression.escapedPattern(for: String(Name[..<PartOne.lowerBound])) + #"\.part[0-9]+\.rar$"#
-        } else if Name.hasSuffix(".7z.001") || Name.hasSuffix(".zip.001") {
+        } else if Name.range(of: #"\.(?:7z|zip)\.[0-9]{3}$"#, options: .regularExpression) != nil {
             Pattern = "^" + NSRegularExpression.escapedPattern(for: String(Name.dropLast(3))) + #"[0-9]{3}$"#
-        } else if Name.hasSuffix(".rar") {
-            Pattern = "^" + NSRegularExpression.escapedPattern(for: String(Name.dropLast(4))) + #"\.(?:rar|r[0-9]{2,3})$"#
-        } else if Name.hasSuffix(".zip") {
-            Pattern = "^" + NSRegularExpression.escapedPattern(for: String(Name.dropLast(4))) + #"\.(?:zip|z[0-9]{2,3})$"#
+        } else if let Extension = Name.range(of: #"\.(?:rar|r[0-9]{2,3})$"#, options: .regularExpression) {
+            Pattern = "^" + NSRegularExpression.escapedPattern(for: String(Name[..<Extension.lowerBound])) + #"\.(?:rar|r[0-9]{2,3})$"#
+        } else if let Extension = Name.range(of: #"\.(?:zip|z[0-9]{2,3})$"#, options: .regularExpression) {
+            Pattern = "^" + NSRegularExpression.escapedPattern(for: String(Name[..<Extension.lowerBound])) + #"\.(?:zip|z[0-9]{2,3})$"#
         } else {
             return [Archive]
         }
@@ -602,7 +720,7 @@ enum ArchiveExtractor {
         }
     }
 
-    static func Extract(_ Archive: URL, To Destination: URL) async throws {
+    static func Extract(_ Archive: URL, To Destination: URL, SpaceSaving: Bool = false, Parts: [URL] = []) async throws {
         guard !FileManager.default.fileExists(atPath: Destination.path) else { throw RuntimeError.Message("The extraction destination already exists.") }
         let Tar = URL(fileURLWithPath: "/usr/bin/bsdtar")
         let SevenZip = FindSevenZip()
@@ -627,8 +745,23 @@ enum ArchiveExtractor {
             }
         }
         let Staging = Destination.deletingLastPathComponent().appendingPathComponent(".ascendara-extract-" + UUID().uuidString, isDirectory: true)
-        try RuntimePaths.CreateDirectory(Staging)
         do {
+            if SpaceSaving, try await ArchiveStorage.ExtractReclaiming(Archive, Parts: Parts, To: Staging) {
+                try FileManager.default.moveItem(at: Staging, to: Destination)
+                try ArchiveStorage.MarkCompleted(Archive, At: Destination)
+                return
+            }
+            let Expanded: Int64
+            if let SevenZip {
+                let Listing = try await NativeProcess.Checked(SevenZip, ["l", "-slt", "-ba", "-psteamrip.com", "--", Archive.path])
+                Expanded = try Listing.components(separatedBy: .newlines).filter { $0.hasPrefix("Size = ") }.reduce(Int64(0)) { Total, Line in
+                    guard let Size = Int64(Line.dropFirst(7).trimmingCharacters(in: .whitespaces)), Size >= 0,
+                          Total <= Int64.max - Size else { throw RuntimeError.Message("The archive's expanded size is invalid.") }
+                    return Total + Size
+                }
+            } else { Expanded = try await ArchiveStorage.ExpandedSize(Archive) }
+            try StorageBudget.Check(at: Destination.deletingLastPathComponent(), Remaining: Expanded)
+            try RuntimePaths.CreateDirectory(Staging)
             do {
                 try await Unpack(Archive, Tool: Extractor, To: Staging)
             } catch {
@@ -656,6 +789,31 @@ enum ArchiveExtractor {
 
     private static func ValidateSevenZip(_ Archive: URL, Tool: URL) async throws {
         let Details = try await NativeProcess.Checked(Tool, ["l", "-slt", "-ba", "-psteamrip.com", "--", Archive.path])
+        var Paths: [(Name: String, Directory: Bool)] = []
+        for Entry in Details.components(separatedBy: "\n\n") {
+            let Fields = Entry.components(separatedBy: .newlines)
+            guard let Field = Fields.first(where: { $0.hasPrefix("Path = ") }) else { continue }
+            let Name = String(Field.dropFirst(7)).replacingOccurrences(of: "\\", with: "/")
+            try ValidatePath(Name)
+            let Directory = Fields.contains("Folder = +") || Fields.contains(where: { $0.hasPrefix("Attributes = D") })
+            Paths.append((Name: Name.components(separatedBy: "/").filter { !$0.isEmpty && $0 != "." }.joined(separator: "/").lowercased(), Directory: Directory))
+        }
+        var Types: [String: Bool] = [:]
+        for Path in Paths {
+            if let Existing = Types[Path.Name], !Existing || !Path.Directory {
+                throw RuntimeError.Message("The archive contains duplicate or conflicting file names.")
+            }
+            Types[Path.Name] = Path.Directory
+        }
+        for Path in Paths {
+            var Components = Path.Name.components(separatedBy: "/")
+            while Components.count > 1 {
+                Components.removeLast()
+                if Types[Components.joined(separator: "/")] == false {
+                    throw RuntimeError.Message("An archive file conflicts with an extraction folder.")
+                }
+            }
+        }
         for Line in Details.components(separatedBy: .newlines) {
             if Line.hasPrefix("Path = ") { try ValidatePath(String(Line.dropFirst(7))) }
             let LinkFields = ["Symbolic Link = ", "Hard Link = ", "Copy Link = "]

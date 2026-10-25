@@ -1,5 +1,6 @@
 import Foundation
 import Darwin
+import AscendaraCore
 
 private struct Job: Decodable {
     let Id: UUID
@@ -8,8 +9,9 @@ private struct Job: Decodable {
     let Headers: [String: String]
     let Connections: Int
     let SpeedLimitBytesPerSecond: Int64
+    let EstimatedBytes: Int64?
 
-    private enum CodingKeys: String, CodingKey { case Id, URL, Destination, Headers, Connections, SpeedLimitBytesPerSecond }
+    private enum CodingKeys: String, CodingKey { case Id, URL, Destination, Headers, Connections, SpeedLimitBytesPerSecond, EstimatedBytes }
     init(from decoder: Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
         Id = try values.decode(UUID.self, forKey: .Id)
@@ -18,6 +20,7 @@ private struct Job: Decodable {
         Headers = try values.decodeIfPresent([String: String].self, forKey: .Headers) ?? [:]
         Connections = max(1, min(16, try values.decodeIfPresent(Int.self, forKey: .Connections) ?? 1))
         SpeedLimitBytesPerSecond = max(0, try values.decodeIfPresent(Int64.self, forKey: .SpeedLimitBytesPerSecond) ?? 0)
+        EstimatedBytes = try values.decodeIfPresent(Int64.self, forKey: .EstimatedBytes)
     }
 }
 
@@ -84,12 +87,14 @@ private final class Transfer {
     let control: URL
     let resume: URL
     let parallel: URL
+    let TransferDirectory: URL
     var lastStatus = Date.distantPast
 
     init(directory: URL, job: Job) {
         self.directory = directory
         self.job = job
-        partial = directory.appendingPathComponent("download.partial")
+        TransferDirectory = job.Destination.deletingLastPathComponent().appendingPathComponent(".ascendara-transfer-" + job.Id.uuidString)
+        partial = TransferDirectory.appendingPathComponent("download.partial")
         control = directory.appendingPathComponent("control.txt")
         resume = directory.appendingPathComponent("resume.json")
         parallel = directory.appendingPathComponent("parallel.json")
@@ -101,6 +106,11 @@ private final class Transfer {
             throw TransferError.message("The download URL must be an HTTP or HTTPS file URL.")
         }
         try manager.createDirectory(at: job.Destination.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try manager.createDirectory(at: TransferDirectory, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
+        let LegacyPartial = directory.appendingPathComponent("download.partial")
+        if manager.fileExists(atPath: LegacyPartial.path), !manager.fileExists(atPath: partial.path) {
+            try manager.moveItem(at: LegacyPartial, to: partial)
+        }
         if job.Connections > 1 || manager.fileExists(atPath: parallel.path) {
             if try parallelTransfer() { return }
         }
@@ -109,6 +119,9 @@ private final class Transfer {
 
     private func singleTransfer() throws {
         var offset = size(partial)
+        let Head = try HeadIfAvailable()
+        let Expected = (Head?.TotalBytes ?? 0) > 0 ? Head!.TotalBytes : job.EstimatedBytes ?? 0
+        if Expected > 0 { try StorageBudget.Check(at: TransferDirectory, Remaining: max(0, Expected - offset)) }
         let saved = try? JSONDecoder().decode(ResumeState.self, from: Data(contentsOf: resume))
         if offset > 0 {
             if let saved, saved.URL == job.URL.absoluteString, !saved.Validator.isEmpty,
@@ -117,8 +130,6 @@ private final class Transfer {
                offset <= saved.TotalBytes {
                 if offset == saved.TotalBytes { try finish(total: offset); return }
             } else {
-                // A partial file without a matching strong validator cannot be
-                // safely appended to; the source may have changed.
                 try? manager.removeItem(at: partial)
                 try? manager.removeItem(at: resume)
                 offset = 0
@@ -136,8 +147,9 @@ private final class Transfer {
         args.append(job.URL.absoluteString)
         var restarted = false
         while true {
+            if Expected > 0 { try StorageBudget.Check(at: TransferDirectory, Remaining: max(0, Expected - offset)) }
             let process = try startCurl(args, errorFile: errors)
-            let result = monitor([process], received: { self.size(self.partial) }, total: { self.readHeaders(headers).TotalBytes })
+            let result = try monitor([process], received: { self.size(self.partial) }, total: { self.readHeaders(headers).TotalBytes })
             if let result {
                 stop(command: result, received: size(partial), total: readHeaders(headers).TotalBytes)
                 return
@@ -166,8 +178,6 @@ private final class Transfer {
                 try finish(total: actual)
                 return
             }
-            // curl reports 33 for a rejected resume. The original downloader
-            // discards that range and retries the file from byte zero.
             if offset > 0 && !restarted && (process.terminationStatus == 33 || response.StatusCode == 416 || response.StatusCode == 200) {
                 restarted = true
                 offset = 0
@@ -206,11 +216,18 @@ private final class Transfer {
                                   TotalBytes: response.TotalBytes, Pieces: pieces)
             try JSONEncoder().encode(state).write(to: parallel, options: .atomic)
         }
-        try checkDiskSpace(required: state.TotalBytes - pieceBytes(state))
+        try? manager.removeItem(at: partial)
+        try StorageBudget.Check(at: TransferDirectory, Remaining: state.TotalBytes - pieceBytes(state), Reserved: state.Pieces.map(length).max() ?? 0)
         var failures = Array(repeating: 0, count: state.Pieces.count)
         var active: [Int: (Process, URL, URL, Int64)] = [:]
+        defer {
+            for (_, Entry) in active where Entry.0.isRunning { Entry.0.terminate() }
+            for (_, Entry) in active { Entry.0.waitUntilExit() }
+        }
         var lastSample = (Date(), pieceBytes(state))
         while true {
+            let InProgress = active.values.reduce(Int64(0)) { $0 + size($1.1) }
+            try StorageBudget.Check(at: TransferDirectory, Remaining: max(0, state.TotalBytes - pieceBytes(state) - InProgress), Reserved: state.Pieces.map(length).max() ?? 0)
             if let action = command() {
                 for (_, entry) in active { entry.0.terminate() }
                 for (_, entry) in active { entry.0.waitUntilExit() }
@@ -224,9 +241,6 @@ private final class Transfer {
                 active.removeValue(forKey: index)
                 let valid = try mergePart(index: index, responseFile: entry.1, headerFile: entry.2, start: entry.3, state: state)
                 if !valid {
-                    // Some hosts do not support concurrent byte-range requests.
-                    // Keep a single-stream fallback rather than assembling a
-                    // corrupt sparse file.
                     for (_, remaining) in active { remaining.0.terminate() }
                     for (_, remaining) in active { remaining.0.waitUntilExit() }
                     discardPieces()
@@ -248,7 +262,7 @@ private final class Transfer {
                 let next = part.Start + pieceSize(index)
                 guard next <= part.End, active[index] == nil else { continue }
                 if failures[index] >= 6 { throw TransferError.message("A download segment failed repeatedly; completed segments were retained.") }
-                let output = directory.appendingPathComponent("piece-\(index).next")
+                let output = TransferDirectory.appendingPathComponent("piece-\(index).next")
                 let headers = directory.appendingPathComponent("piece-\(index).headers")
                 try? manager.removeItem(at: output)
                 try? manager.removeItem(at: headers)
@@ -267,12 +281,14 @@ private final class Transfer {
             }
             Thread.sleep(forTimeInterval: 0.2)
         }
-        try checkDiskSpace(required: state.TotalBytes)
+        try StorageBudget.Check(at: TransferDirectory, Remaining: state.Pieces.map(length).max() ?? 0)
         manager.createFile(atPath: partial.path, contents: nil)
         let output = try FileHandle(forWritingTo: partial)
         defer { try? output.close() }
         for index in state.Pieces.indices {
             try append(file: pieceURL(index), to: output)
+            try output.synchronize()
+            try manager.removeItem(at: pieceURL(index))
         }
         guard size(partial) == state.TotalBytes else { throw TransferError.message("Parallel download did not assemble to the expected size.") }
         try finish(total: state.TotalBytes)
@@ -302,10 +318,15 @@ private final class Transfer {
         let errors = directory.appendingPathComponent("probe-error.txt")
         defer { try? manager.removeItem(at: output); try? manager.removeItem(at: headers) }
         try? manager.removeItem(at: headers)
-        let process = try startCurl(commonArguments() + ["--range", "0-0", "--output", output.path,
+        let process = try startCurl(commonArguments() + ["--max-filesize", "1048576", "--max-time", "20", "--range", "0-0", "--output", output.path,
                                                     "--dump-header", headers.path, job.URL.absoluteString], errorFile: errors)
+        let Deadline = Date().addingTimeInterval(20)
         while process.isRunning {
             try stopProbeIfRequested(process)
+            if size(output) > 1024 * 1024 || Date() > Deadline {
+                process.terminate(); process.waitUntilExit()
+                throw TransferError.message("The server did not honor the bounded range probe.")
+            }
             Thread.sleep(forTimeInterval: 0.2)
         }
         process.waitUntilExit()
@@ -318,6 +339,21 @@ private final class Transfer {
         do { return try probe() }
         catch TransferError.stopped { throw TransferError.stopped }
         catch { return nil }
+    }
+
+    private func HeadIfAvailable() throws -> ResponseHeaders? {
+        let Headers = directory.appendingPathComponent("head.headers")
+        let Errors = directory.appendingPathComponent("head.error")
+        defer { try? manager.removeItem(at: Headers); try? manager.removeItem(at: Errors) }
+        let ProcessValue = try startCurl(commonArguments() + ["--head", "--max-time", "20", "--dump-header", Headers.path,
+                                                          "--output", "/dev/null", job.URL.absoluteString], errorFile: Errors)
+        while ProcessValue.isRunning {
+            try stopProbeIfRequested(ProcessValue)
+            Thread.sleep(forTimeInterval: 0.1)
+        }
+        ProcessValue.waitUntilExit()
+        let Response = readHeaders(Headers)
+        return ProcessValue.terminationStatus == 0 && (200..<300).contains(Response.StatusCode) ? Response : nil
     }
 
     private func stopProbeIfRequested(_ process: Process) throws {
@@ -360,7 +396,7 @@ private final class Transfer {
         return process
     }
 
-    private func monitor(_ processes: [Process], received: () -> Int64, total: () -> Int64) -> String? {
+    private func monitor(_ processes: [Process], received: () -> Int64, total: () -> Int64) throws -> String? {
         var last = (Date(), received())
         while processes.contains(where: { $0.isRunning }) {
             if let action = command() {
@@ -369,6 +405,12 @@ private final class Transfer {
                 return action
             }
             let now = Date(), bytes = received()
+            do { try StorageBudget.Check(at: TransferDirectory, Remaining: max(0, total() - bytes)) }
+            catch {
+                for process in processes where process.isRunning { process.terminate() }
+                for process in processes { process.waitUntilExit() }
+                throw error
+            }
             let elapsed = max(0.01, now.timeIntervalSince(last.0))
             report("Downloading", bytes, total(), max(0, Double(bytes - last.1) / elapsed))
             last = (now, bytes)
@@ -391,13 +433,14 @@ private final class Transfer {
             throw TransferError.message("The destination file already exists; the partial file was retained.")
         }
         try manager.moveItem(at: partial, to: job.Destination)
+        try? manager.removeItem(at: TransferDirectory)
         try? manager.removeItem(at: resume)
         report("Completed", total, total, 0)
     }
 
     private func stop(command: String, received: Int64, total: Int64) {
         if command == "cancel" {
-            try? manager.removeItem(at: partial)
+            try? manager.removeItem(at: TransferDirectory)
             try? manager.removeItem(at: resume)
         }
         report(command == "pause" ? "Paused" : "Cancelled", received, total, 0)
@@ -446,8 +489,6 @@ private final class Transfer {
     }
 
     private func size(_ url: URL) -> Int64 {
-        // URL resource values can cache fileSize for a URL reused while curl is
-        // writing. Read the filesystem each time so progress follows the file.
         var information = stat()
         return url.withUnsafeFileSystemRepresentation { path in
             guard let path, lstat(path, &information) == 0 else { return 0 }
@@ -455,7 +496,7 @@ private final class Transfer {
         }
     }
     private func length(_ piece: Piece) -> Int64 { piece.End - piece.Start + 1 }
-    private func pieceURL(_ index: Int) -> URL { directory.appendingPathComponent("piece-\(index).data") }
+    private func pieceURL(_ index: Int) -> URL { TransferDirectory.appendingPathComponent("piece-\(index).data") }
     private func errorFile(_ index: Int) -> URL { directory.appendingPathComponent("piece-\(index).error") }
     private func pieceSize(_ index: Int) -> Int64 { size(pieceURL(index)) }
     private func pieceBytes(_ state: ParallelState) -> Int64 {
@@ -463,20 +504,16 @@ private final class Transfer {
     }
     private func discardPieces() {
         try? manager.removeItem(at: parallel)
-        if let files = try? manager.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil) {
-            for file in files where file.lastPathComponent.hasPrefix("piece-") { try? manager.removeItem(at: file) }
+        for Root in [directory, TransferDirectory] {
+            if let Files = try? manager.contentsOfDirectory(at: Root, includingPropertiesForKeys: nil) {
+                for File in Files where File.lastPathComponent.hasPrefix("piece-") { try? manager.removeItem(at: File) }
+            }
         }
     }
     private func append(file: URL, to output: FileHandle) throws {
         let input = try FileHandle(forReadingFrom: file)
         defer { try? input.close() }
         while let data = try input.read(upToCount: 1024 * 1024), !data.isEmpty { try output.write(contentsOf: data) }
-    }
-    private func checkDiskSpace(required: Int64) throws {
-        var info = statvfs()
-        guard statvfs(job.Destination.deletingLastPathComponent().path, &info) == 0 else { return }
-        let available = Int64(info.f_bavail) * Int64(info.f_frsize)
-        if required > available { throw TransferError.message("Insufficient disk space for this download.") }
     }
     private func failureMessage(_ url: URL, status: Int) -> String {
         let message = (try? String(contentsOf: url, encoding: .utf8))?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""

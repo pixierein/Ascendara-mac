@@ -22,7 +22,7 @@ struct TVHomeView: View {
                         if let Installed = Store.LibraryMatch(Game) {
                             TVLaunchButton(Game: Installed)
                         } else {
-                            Button { Store.OpenGame(Game) } label: { Label("View Game", systemImage: "play.fill") }
+                            Button { Store.OpenGame(Game) } label: { Label(I18n.T("View Game"), systemImage: "play.fill") }
                                 .buttonStyle(TVButtonStyle(Prominent: true))
                         }
                         Button { Store.ToggleWishlist(Game) } label: {
@@ -33,22 +33,22 @@ struct TVHomeView: View {
                     .overlay(alignment: .bottomTrailing) { Carousel.padding(.trailing, 40 * Scale).padding(.bottom, 15 * Scale) }
                 } else {
                     VStack(alignment: .leading, spacing: 24 * Scale) {
-                        TVPageHeading(Title: "Your next game starts here", Subtitle: "Explore your catalogue or jump into your library.")
+                        TVPageHeading(Title: I18n.T("Your next game starts here"), Subtitle: I18n.T("Explore your catalogue or jump into your library."))
                         if Store.IsLoading { ProgressView("Loading catalogue…").font(.system(size: 22 * Scale)) }
                         HStack(spacing: 16 * Scale) {
-                            Button("Open Library") { Store.Route = .Library }.buttonStyle(TVButtonStyle(Prominent: true))
-                            Button("Refresh Catalogue") { Store.RefreshCatalog() }.buttonStyle(TVButtonStyle())
-                            Button("Sources") { Store.Route = .Sources }.buttonStyle(TVButtonStyle())
+                            Button(I18n.T("Open Library")) { Store.Route = .Library }.buttonStyle(TVButtonStyle(Prominent: true))
+                            Button(I18n.T("Refresh Catalogue")) { Store.RefreshCatalog() }.buttonStyle(TVButtonStyle())
+                            Button(I18n.T("Sources")) { Store.Route = .Sources }.buttonStyle(TVButtonStyle())
                         }
                     }.padding(40 * Scale).frame(minHeight: 330 * Scale, alignment: .leading)
                 }
                 if !Recent.isEmpty {
                     VStack(alignment: .leading, spacing: 18 * Scale) {
-                        TVGamesSectionTitle(Title: "Continue playing", ActionTitle: "Your library") { Store.Route = .Library }
+                        TVGamesSectionTitle(Title: I18n.T("Continue playing"), ActionTitle: I18n.T("Your library")) { Store.Route = .Library }
                         ScrollView(.horizontal) {
                             LazyHStack(spacing: 20 * Scale) {
                                 ForEach(Recent) { Game in
-                                    TVGameTile(Name: Game.Name, Subtitle: "\(FormatPlayTime(Game.PlayTimeSeconds)) played", Artwork: Game.ArtworkURL, Width: 300 * Scale) {
+                                    TVGameTile(Name: Game.Name, Subtitle: I18n.Interpolated("\(FormatPlayTime(Game.PlayTimeSeconds)) played"), Artwork: Game.ArtworkURL, Width: 300 * Scale) {
                                         if let Match = Store.Games.first(where: { $0.Id == Game.CatalogId || $0.Name.caseInsensitiveCompare(Game.Name) == .orderedSame }) {
                                             Store.OpenGame(Match)
                                         } else {
@@ -62,10 +62,10 @@ struct TVHomeView: View {
                     }
                 }
                 if !Featured.isEmpty {
-                    TVCatalogueShelf(Title: "Featured games", Games: Featured, ActionTitle: "Browse all") { Store.Route = .Search }
+                    TVCatalogueShelf(Title: I18n.T("Featured games"), Games: Featured, ActionTitle: I18n.T("Browse all")) { Store.Route = .Search }
                 }
                 if !Store.WishlistGames.isEmpty {
-                    TVCatalogueShelf(Title: "Play later", Games: Array(Store.WishlistGames.prefix(16)), ActionTitle: "Your list") { Store.Route = .Wishlist }
+                    TVCatalogueShelf(Title: I18n.T("Play later"), Games: Array(Store.WishlistGames.prefix(16)), ActionTitle: I18n.T("Your list")) { Store.Route = .Wishlist }
                 }
                 if let Warning = Store.CatalogWarning {
                     Label(Warning, systemImage: "info.circle")
@@ -81,16 +81,16 @@ struct TVHomeView: View {
     private var Carousel: some View {
         HStack(spacing: 12 * Scale) {
             Button { MoveSlide(-1) } label: { Image(systemName: "chevron.left").frame(width: 42 * Scale, height: 42 * Scale) }
-                .accessibilityLabel("Previous featured game")
+                .accessibilityLabel(I18n.T("Previous featured game"))
             ForEach(Array(Slides.enumerated()), id: \.element.Id) { Index, Game in
                 Button { Slide = Index } label: {
                     Capsule().fill(Slide == Index ? .white : .white.opacity(0.3))
                         .frame(width: (Slide == Index ? 24 : 8) * Scale, height: 8 * Scale)
                         .frame(minWidth: 28 * Scale, minHeight: 42 * Scale)
-                }.accessibilityLabel("Feature \(Game.Name)").accessibilityAddTraits(Slide == Index ? .isSelected : [])
+                }.accessibilityLabel(I18n.Interpolated("Feature \(Game.Name)")).accessibilityAddTraits(Slide == Index ? .isSelected : [])
             }
             Button { MoveSlide(1) } label: { Image(systemName: "chevron.right").frame(width: 42 * Scale, height: 42 * Scale) }
-                .accessibilityLabel("Next featured game")
+                .accessibilityLabel(I18n.T("Next featured game"))
         }.buttonStyle(MotionButtonStyle()).font(.system(size: 18 * Scale, weight: .semibold))
             .foregroundStyle(.white).padding(.horizontal, 10 * Scale)
             .background(.black.opacity(0.3), in: Capsule())
@@ -126,18 +126,18 @@ struct TVLibraryView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 28 * Scale) {
                     HStack(spacing: 16 * Scale) {
-                        TVPageHeading(Title: "Your library", Subtitle: "\(Store.Library.count) games, ready when you are.")
+                        TVPageHeading(Title: I18n.T("Your library"), Subtitle: I18n.Interpolated("\(Store.Library.count) games, ready when you are."))
                         Spacer(minLength: 0)
-                        Button { Store.ImportGame() } label: { Label("Add Game", systemImage: "plus") }
+                        Button { Store.ImportGame() } label: { Label(I18n.T("Add Game"), systemImage: "plus") }
                             .buttonStyle(TVButtonStyle(Prominent: true))
                         Menu {
-                            Button("Check updates") { ShowingUpdates = true }
-                            Button("Scan Steam library") { Store.ScanSteamLibrary() }
-                            Button("Import library…") { Store.ImportLibrary() }
-                            Button("Export library…") { Store.ExportLibrary() }
-                            Button("Import legacy library…") { Store.ImportLegacyLibrary() }
+                            Button(I18n.T("Check updates")) { ShowingUpdates = true }
+                            Button(I18n.T("Scan Steam library")) { Store.ScanSteamLibrary() }
+                            Button(I18n.T("Import library…")) { Store.ImportLibrary() }
+                            Button(I18n.T("Export library…")) { Store.ExportLibrary() }
+                            Button(I18n.T("Import legacy library…")) { Store.ImportLegacyLibrary() }
                         } label: {
-                            Label("Manage", systemImage: "ellipsis")
+                            Label(I18n.T("Manage"), systemImage: "ellipsis")
                                 .padding(12 * Scale)
                                 .contentShape(Rectangle())
                         }
@@ -149,18 +149,18 @@ struct TVLibraryView: View {
                                     Summary: Game.Notes.isEmpty ? (Game.IsInstalled ? "Choose a game, settle in, and play." : "Game files are missing. Choose an executable in Game Options.") : Game.Notes,
                                     Artwork: Game.ArtworkURL, Height: 460) {
                             TVLaunchButton(Game: Game)
-                            Button { Editor = Game } label: { Label("Game Options", systemImage: "slider.horizontal.3") }
+                            Button { Editor = Game } label: { Label(I18n.T("Game Options"), systemImage: "slider.horizontal.3") }
                                 .buttonStyle(TVButtonStyle())
                             Button { Store.ToggleLibraryFavorite(Game) } label: { Image(systemName: Game.Favorite ? "star.fill" : "star") }
                                 .buttonStyle(TVButtonStyle()).accessibilityLabel(Game.Favorite ? "Remove favorite" : "Add favorite")
                         }.id("LibraryHero")
                     }
                     VStack(alignment: .leading, spacing: 20 * Scale) {
-                        TVGameSearchField(Text: $Query, Placeholder: "Search your library")
+                        TVGameSearchField(Text: $Query, Placeholder: I18n.T("Search your library"))
                         ScrollView(.horizontal) {
                             HStack(spacing: 12 * Scale) {
                                 ForEach(["All games", "Favorites", "Recently played"], id: \.self) { Value in
-                                    Button(Value) { Scope = Value }.buttonStyle(TVButtonStyle(Selected: Scope == Value))
+                                    Button(I18n.T(Value)) { Scope = Value }.buttonStyle(TVButtonStyle(Selected: Scope == Value))
                                 }
                                 ForEach(Collections, id: \.self) { Collection in
                                     Button(Collection) { Scope = "Collection: " + Collection }
@@ -186,12 +186,12 @@ struct TVLibraryView: View {
                         }.scrollIndicators(.hidden)
                         if let Game = Selected {
                             HStack(spacing: 14 * Scale) {
-                                Button("Show in Finder") { Store.RevealGame(Game) }.buttonStyle(TVButtonStyle())
-                                Button("Create Backup") { Store.CreateBackup(Game) }.buttonStyle(TVButtonStyle())
-                                Menu("More") {
-                                    Button("Restore backup…") { Store.RestoreBackup(Game) }
-                                    Button("Choose executable…") { Store.SetExecutable(Game) }
-                                    Button("Remove from library…", role: .destructive) { Store.RemoveGame(Game) }
+                                Button(I18n.T("Show in Finder")) { Store.RevealGame(Game) }.buttonStyle(TVButtonStyle())
+                                Button(I18n.T("Create Backup")) { Store.CreateBackup(Game) }.buttonStyle(TVButtonStyle())
+                                Menu(I18n.T("More")) {
+                                    Button(I18n.T("Restore backup…")) { Store.RestoreBackup(Game) }
+                                    Button(I18n.T("Choose executable…")) { Store.SetExecutable(Game) }
+                                    Button(I18n.T("Remove from library…"), role: .destructive) { Store.RemoveGame(Game) }
                                 }.menuStyle(.borderlessButton).font(.system(size: 20 * Scale)).fixedSize()
                             }.padding(.horizontal, 40 * Scale)
                         }
@@ -224,17 +224,17 @@ struct TVSearchView: View {
                     ScrollView(.horizontal) {
                         HStack(spacing: 12 * Scale) {
                             ForEach(Store.Genres, id: \.self) { Genre in
-                                Button(Genre) { Store.SelectedGenre = Genre }
+                                Button(I18n.T(Genre)) { Store.SelectedGenre = Genre }
                                     .buttonStyle(TVButtonStyle(Selected: Store.SelectedGenre == Genre))
                             }
                         }.padding(.vertical, 5 * Scale)
                     }.scrollIndicators(.hidden)
                     HStack(spacing: 18 * Scale) {
-                        Text("\(Games.count.formatted()) games").font(.system(size: 23 * Scale, weight: .semibold))
+                        Text(I18n.Interpolated("\(Games.count.formatted()) games")).font(.system(size: 23 * Scale, weight: .semibold))
                         Spacer()
                         Menu {
                             ForEach(["Relevance", "Name A–Z", "Recently updated", "Smallest size"], id: \.self) { Order in
-                                Button(Order) { Store.SortOrder = Order }
+                                Button(I18n.T(Order)) { Store.SortOrder = Order }
                             }
                         } label: {
                             Label(Store.SortOrder, systemImage: "arrow.up.arrow.down")
@@ -242,13 +242,13 @@ struct TVSearchView: View {
                                 .contentShape(Rectangle())
                         }
                         .menuStyle(.borderlessButton).font(.system(size: 20 * Scale)).fixedSize()
-                        Button { ShowingFilters.toggle() } label: { Label("Filters", systemImage: "line.3.horizontal.decrease") }
+                        Button { ShowingFilters.toggle() } label: { Label(I18n.T("Filters"), systemImage: "line.3.horizontal.decrease") }
                             .buttonStyle(TVButtonStyle(Selected: ShowingFilters))
                     }
                     if ShowingFilters { Filters }
                     if Games.isEmpty {
                         TVEmptyState(Symbol: Wishlist ? "bookmark" : "magnifyingglass", Title: Wishlist ? "Nothing saved here yet" : "No games found", Message: Wishlist ? "Save a game with Play Later, or clear your search filters." : "Try another title, genre, or source.")
-                        Button("Clear Filters", action: ClearFilters).buttonStyle(TVButtonStyle(Prominent: true))
+                        Button(I18n.T("Clear Filters"), action: ClearFilters).buttonStyle(TVButtonStyle(Prominent: true))
                     } else {
                         LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 22 * Scale), count: Columns), spacing: 28 * Scale) {
                             ForEach(Games) { Game in
@@ -267,9 +267,9 @@ struct TVSearchView: View {
         VStack(alignment: .leading, spacing: 20 * Scale) {
             ScrollView(.horizontal) {
                 HStack(spacing: 12 * Scale) {
-                    Button("Online") { Store.OnlineOnly.toggle() }.buttonStyle(TVButtonStyle(Selected: Store.OnlineOnly))
-                    Button("Includes DLC") { Store.DlcOnly.toggle() }.buttonStyle(TVButtonStyle(Selected: Store.DlcOnly))
-                    Button("Verified") { Store.VerifiedOnly.toggle() }.buttonStyle(TVButtonStyle(Selected: Store.VerifiedOnly))
+                    Button(I18n.T("Online")) { Store.OnlineOnly.toggle() }.buttonStyle(TVButtonStyle(Selected: Store.OnlineOnly))
+                    Button(I18n.T("Includes DLC")) { Store.DlcOnly.toggle() }.buttonStyle(TVButtonStyle(Selected: Store.DlcOnly))
+                    Button(I18n.T("Verified")) { Store.VerifiedOnly.toggle() }.buttonStyle(TVButtonStyle(Selected: Store.VerifiedOnly))
                     Menu {
                         ForEach(Store.Providers, id: \.self) { Provider in Button(Provider) { Store.SelectedProvider = Provider } }
                     } label: {
@@ -283,8 +283,8 @@ struct TVSearchView: View {
             HStack(spacing: 20 * Scale) {
                 Text(Store.MaximumSizeGB == 0 ? "Any download size" : "Up to \(Int(Store.MaximumSizeGB)) GB")
                     .font(.system(size: 19 * Scale)).frame(width: 230 * Scale, alignment: .leading)
-                Slider(value: $Store.MaximumSizeGB, in: 0...300, step: 5).accessibilityLabel("Maximum download size")
-                Button("Reset", action: ClearFilters).buttonStyle(TVButtonStyle())
+                Slider(value: $Store.MaximumSizeGB, in: 0...300, step: 5).accessibilityLabel(I18n.T("Maximum download size"))
+                Button(I18n.T("Reset"), action: ClearFilters).buttonStyle(TVButtonStyle())
             }
         }.padding(24 * Scale).background(TVStyle.Panel, in: RoundedRectangle(cornerRadius: 16 * Scale))
     }
@@ -354,7 +354,7 @@ struct TVGameSearchField: View {
             TextField(Placeholder, text: $Text).textFieldStyle(.plain)
             if !Text.isEmpty {
                 Button { Text = "" } label: { Image(systemName: "xmark.circle.fill") }
-                    .buttonStyle(.plain).accessibilityLabel("Clear search")
+                    .buttonStyle(.plain).accessibilityLabel(I18n.T("Clear search"))
             }
         }
         .font(.system(size: 26 * Scale)).foregroundStyle(TVStyle.Text)
@@ -370,7 +370,7 @@ private struct TVGamesSectionTitle: View {
     let Action: () -> Void
     var body: some View {
         HStack {
-            Text(Title).font(.system(size: 27 * Scale, weight: .semibold))
+            Text(I18n.T(Title)).font(.system(size: 27 * Scale, weight: .semibold))
             Spacer()
             Button(action: Action) { Label(ActionTitle, systemImage: "chevron.right") }.buttonStyle(TVButtonStyle())
         }.padding(.horizontal, 40 * Scale)

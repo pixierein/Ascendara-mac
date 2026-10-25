@@ -11,11 +11,11 @@ struct TVSettingsView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 34 * Scale) {
-                TVPageHeading(Title: "Preferences", Subtitle: "Settle in. Make Ascendara yours.")
+                TVPageHeading(Title: I18n.T("Preferences"), Subtitle: I18n.T("Settle in. Make Ascendara yours."))
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 14 * Scale) {
                         ForEach(Sections, id: \.0) { Title, Symbol in
-                            Button { Section = Title } label: { Label(Title, systemImage: Symbol) }
+                            Button { Section = Title } label: { Label(I18n.T(Title), systemImage: Symbol) }
                                 .buttonStyle(TVButtonStyle(Selected: Section == Title))
                         }
                     }.padding(.vertical, 6 * Scale)
@@ -32,8 +32,8 @@ struct TVSettingsView: View {
                     }
                 }.id(Section).MotionTransition()
                 HStack(spacing: 18 * Scale) {
-                    Button { Store.CurrentRoute = .Sources } label: { Label("External sources", systemImage: "externaldrive.connected.to.line.below") }.buttonStyle(TVButtonStyle())
-                    Button { Store.CurrentRoute = .Tools } label: { Label("Tools & dependencies", systemImage: "wrench.and.screwdriver") }.buttonStyle(TVButtonStyle())
+                    Button { Store.CurrentRoute = .Sources } label: { Label(I18n.T("External sources"), systemImage: "externaldrive.connected.to.line.below") }.buttonStyle(TVButtonStyle())
+                    Button { Store.CurrentRoute = .Tools } label: { Label(I18n.T("Tools & dependencies"), systemImage: "wrench.and.screwdriver") }.buttonStyle(TVButtonStyle())
                 }
             }.padding(.horizontal, 56 * Scale).padding(.vertical, 32 * Scale).padding(.bottom, 48 * Scale)
         }.MotionAnimation(Section)
@@ -64,18 +64,18 @@ struct TVSettingsView: View {
                                 }.padding(14 * Scale).foregroundStyle(TVStyle.Text)
                                     .background(TVStyle.Background, in: RoundedRectangle(cornerRadius: 16 * Scale))
                                     .overlay(RoundedRectangle(cornerRadius: 16 * Scale).stroke(Store.Settings.Theme == Name ? TVStyle.Accent : .clear, lineWidth: 2 * Scale))
-                            }.buttonStyle(MotionButtonStyle()).accessibilityLabel("\(Name.capitalized) theme")
+                            }.buttonStyle(MotionButtonStyle()).accessibilityLabel(I18n.Interpolated("\(Name.capitalized) theme"))
                         }
                     }
                 }
             }
-            TVSettingToggle(Title: "Reduce motion", Subtitle: "Use quieter transitions throughout Ascendara.", Value: $Store.Settings.ReduceMotion)
+            TVSettingToggle(Title: I18n.T("Reduce motion"), Subtitle: I18n.T("Use quieter transitions throughout Ascendara."), Value: $Store.Settings.ReduceMotion)
             TVPanel {
                 VStack(alignment: .leading, spacing: 22 * Scale) {
                     Heading("Desktop navigation size", "Choose how large the desktop navigation bar feels.")
                     HStack(spacing: 24 * Scale) {
                         Slider(value: $Store.Settings.DockScale, in: 0.65...1.15, step: 0.05).tint(TVStyle.Accent)
-                        Text("\(Int(Store.Settings.DockScale * 100))%").font(.system(size: 25 * Scale, weight: .medium)).monospacedDigit().foregroundStyle(TVStyle.Text)
+                        Text(I18n.Interpolated("\(Int(Store.Settings.DockScale * 100))%")).font(.system(size: 25 * Scale, weight: .medium)).monospacedDigit().foregroundStyle(TVStyle.Text)
                     }
                 }
             }
@@ -86,7 +86,7 @@ struct TVSettingsView: View {
             TVPanel {
                 VStack(alignment: .leading, spacing: 28 * Scale) {
                     Heading("Your profile", "A familiar name every time you settle in.")
-                    TVSettingsField(Title: "Display name", Value: $Store.Settings.DisplayName)
+                    TVSettingsField(Title: I18n.T("Display name"), Value: $Store.Settings.DisplayName)
                 }
             }
             TVPanel {
@@ -99,8 +99,8 @@ struct TVSettingsView: View {
                     }
                 }
             }
-            TVSettingToggle(Title: "Show Workshop", Subtitle: "Keep Steam Workshop in your navigation.", Value: $Store.Settings.ShowWorkshop)
-            Button("Show welcome setup") { Store.ReplayWelcome() }.buttonStyle(TVButtonStyle())
+            TVSettingToggle(Title: I18n.T("Show Workshop"), Subtitle: I18n.T("Keep Steam Workshop in your navigation."), Value: $Store.Settings.ShowWorkshop)
+            Button(I18n.T("Show welcome setup")) { Store.ReplayWelcome() }.buttonStyle(TVButtonStyle())
         }
     }
     private var Downloads: some View {
@@ -108,8 +108,8 @@ struct TVSettingsView: View {
             TVPanel {
                 VStack(alignment: .leading, spacing: 24 * Scale) {
                     Heading("A home for your games", "Choose where downloaded files are stored.")
-                    TVSettingsField(Title: "Download directory", Value: $Store.Settings.DownloadDirectory)
-                    Button { Store.ChooseDownloadDirectory() } label: { Label("Choose folder", systemImage: "folder") }.buttonStyle(TVButtonStyle())
+                    TVSettingsField(Title: I18n.T("Download directory"), Value: $Store.Settings.DownloadDirectory)
+                    Button { Store.ChooseDownloadDirectory() } label: { Label(I18n.T("Choose folder"), systemImage: "folder") }.buttonStyle(TVButtonStyle())
                 }
             }
             TVPanel {
@@ -117,14 +117,14 @@ struct TVSettingsView: View {
                     Heading("Concurrent downloads", "How many downloads can run at the same time.")
                     Spacer(minLength: 16 * Scale)
                     Button { Store.Settings.ConcurrentDownloads = max(1, Store.Settings.ConcurrentDownloads - 1) } label: { Image(systemName: "minus") }
-                        .buttonStyle(TVButtonStyle()).disabled(Store.Settings.ConcurrentDownloads <= 1).accessibilityLabel("Fewer concurrent downloads")
-                    Text("\(Store.Settings.ConcurrentDownloads)").font(.system(size: 36 * Scale, weight: .semibold)).foregroundStyle(TVStyle.Text).frame(width: 50 * Scale)
+                        .buttonStyle(TVButtonStyle()).disabled(Store.Settings.ConcurrentDownloads <= 1).accessibilityLabel(I18n.T("Fewer concurrent downloads"))
+                    Text(I18n.Interpolated("\(Store.Settings.ConcurrentDownloads)")).font(.system(size: 36 * Scale, weight: .semibold)).foregroundStyle(TVStyle.Text).frame(width: 50 * Scale)
                     Button { Store.Settings.ConcurrentDownloads = min(8, Store.Settings.ConcurrentDownloads + 1) } label: { Image(systemName: "plus") }
-                        .buttonStyle(TVButtonStyle()).disabled(Store.Settings.ConcurrentDownloads >= 8).accessibilityLabel("More concurrent downloads")
+                        .buttonStyle(TVButtonStyle()).disabled(Store.Settings.ConcurrentDownloads >= 8).accessibilityLabel(I18n.T("More concurrent downloads"))
                 }
             }
-            TVSettingToggle(Title: "Extract archives automatically", Subtitle: "Prepare supported game archives when downloads finish.", Value: $Store.Settings.AutoExtract)
-            TVSettingToggle(Title: "Keep this Mac awake", Subtitle: "Let active downloads finish without interruption.", Value: $Store.Settings.KeepAwake)
+            TVSettingToggle(Title: I18n.T("Extract archives automatically"), Subtitle: I18n.T("Prepare supported game archives when downloads finish."), Value: $Store.Settings.AutoExtract)
+            TVSettingToggle(Title: I18n.T("Keep this Mac awake"), Subtitle: I18n.T("Let active downloads finish without interruption."), Value: $Store.Settings.KeepAwake)
         }
     }
     private var Compatibility: some View {
@@ -132,9 +132,9 @@ struct TVSettingsView: View {
             TVPanel {
                 VStack(alignment: .leading, spacing: 26 * Scale) {
                     Heading("Windows games", "Connect a Wine or Highball runtime, then choose each game's launch mode in Library.")
-                    TVSettingsField(Title: "Wine executable", Value: $Store.Settings.WinePath, Placeholder: "/opt/homebrew/bin/wine")
-                    TVSettingsField(Title: "Highball executable", Value: $Store.Settings.HighballPath, Placeholder: "/path/to/highball")
-                    Button("Check compatibility runtimes") { ShowingCompatibility = true }.buttonStyle(TVButtonStyle(Prominent: true))
+                    TVSettingsField(Title: I18n.T("Wine executable"), Value: $Store.Settings.WinePath, Placeholder: I18n.T("/opt/homebrew/bin/wine"))
+                    TVSettingsField(Title: I18n.T("Highball executable"), Value: $Store.Settings.HighballPath, Placeholder: I18n.T("/path/to/highball"))
+                    Button(I18n.T("Check compatibility runtimes")) { ShowingCompatibility = true }.buttonStyle(TVButtonStyle(Prominent: true))
                 }
             }
             TVPanel {
@@ -148,9 +148,9 @@ struct TVSettingsView: View {
             TVPanel {
                 VStack(alignment: .leading, spacing: 26 * Scale) {
                     Heading("Retro games", "Bring your emulator and ROM collection together.")
-                    TVSettingsField(Title: "Emulator executable", Value: $Store.Settings.RetroEmulatorPath, Placeholder: "/path/to/emulator")
-                    TVSettingsField(Title: "Emulator arguments", Value: $Store.Settings.RetroArguments, Placeholder: "{rom}")
-                    Button("Open Retro") { Store.CurrentRoute = .Retro }.buttonStyle(TVButtonStyle())
+                    TVSettingsField(Title: I18n.T("Emulator executable"), Value: $Store.Settings.RetroEmulatorPath, Placeholder: I18n.T("/path/to/emulator"))
+                    TVSettingsField(Title: I18n.T("Emulator arguments"), Value: $Store.Settings.RetroArguments, Placeholder: I18n.T("{rom}"))
+                    Button(I18n.T("Open Retro")) { Store.CurrentRoute = .Retro }.buttonStyle(TVButtonStyle())
                 }
             }
         }
@@ -160,23 +160,23 @@ struct TVSettingsView: View {
             TVPanel {
                 VStack(alignment: .leading, spacing: 26 * Scale) {
                     Heading("TorBox", "Connect your account to its download service.")
-                    TVSettingsField(Title: "TorBox API key", Value: $Store.Settings.TorBoxAPIKey, Secure: true)
-                    Button("Open TorBox downloads") { Store.CurrentRoute = .TorBox }.buttonStyle(TVButtonStyle())
+                    TVSettingsField(Title: I18n.T("TorBox API key"), Value: $Store.Settings.TorBoxAPIKey, Secure: true)
+                    Button(I18n.T("Open TorBox downloads")) { Store.CurrentRoute = .TorBox }.buttonStyle(TVButtonStyle())
                 }
             }
             TVPanel {
                 VStack(alignment: .leading, spacing: 26 * Scale) {
                     Heading("qBittorrent", "Connect to a running qBittorrent Web UI.")
-                    TVSettingsField(Title: "Web UI address", Value: $Store.Settings.QBitTorrentURL)
-                    TVSettingsField(Title: "Username", Value: $Store.Settings.QBitTorrentUsername)
-                    TVSettingsField(Title: "Password", Value: $Store.Settings.QBitTorrentPassword, Secure: true)
+                    TVSettingsField(Title: I18n.T("Web UI address"), Value: $Store.Settings.QBitTorrentURL)
+                    TVSettingsField(Title: I18n.T("Username"), Value: $Store.Settings.QBitTorrentUsername)
+                    TVSettingsField(Title: I18n.T("Password"), Value: $Store.Settings.QBitTorrentPassword, Secure: true)
                 }
             }
             TVPanel {
                 VStack(alignment: .leading, spacing: 26 * Scale) {
                     Heading("Steam Workshop", "Use your installed SteamCMD for supported Workshop items.")
-                    TVSettingsField(Title: "SteamCMD executable", Value: $Store.Settings.SteamCMDPath, Placeholder: "/path/to/steamcmd")
-                    Button("Open Workshop") { Store.CurrentRoute = .Workshop }.buttonStyle(TVButtonStyle())
+                    TVSettingsField(Title: I18n.T("SteamCMD executable"), Value: $Store.Settings.SteamCMDPath, Placeholder: I18n.T("/path/to/steamcmd"))
+                    Button(I18n.T("Open Workshop")) { Store.CurrentRoute = .Workshop }.buttonStyle(TVButtonStyle())
                 }
             }
         }
@@ -185,11 +185,11 @@ struct TVSettingsView: View {
         TVPanel {
             VStack(alignment: .leading, spacing: 28 * Scale) {
                 Heading("Keep your collection safe", "Export launch settings and library entries. Game files can be backed up from each game's options.")
-                TVSettingsField(Title: "Backup directory", Value: $Store.Settings.BackupDirectory)
-                Button { ChooseBackupDirectory() } label: { Label("Choose backup folder", systemImage: "folder") }.buttonStyle(TVButtonStyle())
+                TVSettingsField(Title: I18n.T("Backup directory"), Value: $Store.Settings.BackupDirectory)
+                Button { ChooseBackupDirectory() } label: { Label(I18n.T("Choose backup folder"), systemImage: "folder") }.buttonStyle(TVButtonStyle())
                 HStack(spacing: 18 * Scale) {
-                    Button("Export library") { Store.ExportLibrary() }.buttonStyle(TVButtonStyle(Prominent: true))
-                    Button("Import library") { Store.ImportLibrary() }.buttonStyle(TVButtonStyle())
+                    Button(I18n.T("Export library")) { Store.ExportLibrary() }.buttonStyle(TVButtonStyle(Prominent: true))
+                    Button(I18n.T("Import library")) { Store.ImportLibrary() }.buttonStyle(TVButtonStyle())
                 }
             }
         }
@@ -199,20 +199,20 @@ struct TVSettingsView: View {
             VStack(alignment: .leading, spacing: 26 * Scale) {
                 Image(systemName: "gamecontroller.fill").font(.system(size: 60 * Scale)).foregroundStyle(TVStyle.Accent)
                 Heading("Ascendara for Mac", "Your games. One place. Built natively for macOS.")
-                Text("macOS 14 or later · Native SwiftUI interface").font(.system(size: 22 * Scale)).foregroundStyle(TVStyle.Secondary)
-                Text("Your library, profile, preferences, and cached game index are stored on this Mac.")
+                Text(I18n.T("macOS 14 or later · Native SwiftUI interface")).font(.system(size: 22 * Scale)).foregroundStyle(TVStyle.Secondary)
+                Text(I18n.T("Your library, profile, preferences, and cached game index are stored on this Mac."))
                     .font(.system(size: 21 * Scale)).foregroundStyle(TVStyle.Secondary).lineSpacing(6 * Scale)
                 HStack(spacing: 18 * Scale) {
-                    Button("Ascendara website") { Store.OpenExternal("https://ascendara.app") }.buttonStyle(TVButtonStyle(Prominent: true))
-                    Button("Source code") { Store.OpenExternal("https://github.com/pixierein/ascendara") }.buttonStyle(TVButtonStyle())
+                    Button(I18n.T("Ascendara website")) { Store.OpenExternal("https://ascendara.app") }.buttonStyle(TVButtonStyle(Prominent: true))
+                    Button(I18n.T("Source code")) { Store.OpenExternal("https://github.com/pixierein/ascendara") }.buttonStyle(TVButtonStyle())
                 }
             }
         }
     }
     private func Heading(_ Title: String, _ Subtitle: String) -> some View {
         VStack(alignment: .leading, spacing: 12 * Scale) {
-            Text(Title).font(.system(size: 28 * Scale, weight: .semibold)).foregroundStyle(TVStyle.Text)
-            Text(Subtitle).font(.system(size: 20 * Scale)).foregroundStyle(TVStyle.Secondary).fixedSize(horizontal: false, vertical: true)
+            Text(I18n.T(Title)).font(.system(size: 28 * Scale, weight: .semibold)).foregroundStyle(TVStyle.Text)
+            Text(I18n.T(Subtitle)).font(.system(size: 20 * Scale)).foregroundStyle(TVStyle.Secondary).fixedSize(horizontal: false, vertical: true)
         }
     }
     private func ThemeSwatch(_ Name: String) -> Color {
@@ -246,8 +246,8 @@ private struct TVSettingToggle: View {
         Button { Value.toggle() } label: {
             HStack(spacing: 28 * Scale) {
                 VStack(alignment: .leading, spacing: 12 * Scale) {
-                    Text(Title).font(.system(size: 25 * Scale, weight: .semibold))
-                    Text(Subtitle).font(.system(size: 19 * Scale)).foregroundStyle(TVStyle.Secondary)
+                    Text(I18n.T(Title)).font(.system(size: 25 * Scale, weight: .semibold))
+                    Text(I18n.T(Subtitle)).font(.system(size: 19 * Scale)).foregroundStyle(TVStyle.Secondary)
                 }.frame(maxWidth: .infinity, alignment: .leading)
                 Text(Value ? "On" : "Off").font(.system(size: 21 * Scale, weight: .semibold))
                 Image(systemName: Value ? "checkmark.circle.fill" : "circle").font(.system(size: 30 * Scale))
@@ -264,7 +264,7 @@ private struct TVSettingsField: View {
     var Secure = false
     var body: some View {
         VStack(alignment: .leading, spacing: 12 * Scale) {
-            Text(Title).font(.system(size: 20 * Scale, weight: .medium)).foregroundStyle(TVStyle.Secondary)
+            Text(I18n.T(Title)).font(.system(size: 20 * Scale, weight: .medium)).foregroundStyle(TVStyle.Secondary)
             Group {
                 if Secure { SecureField(Placeholder.isEmpty ? Title : Placeholder, text: $Value) }
                 else { TextField(Placeholder.isEmpty ? Title : Placeholder, text: $Value) }

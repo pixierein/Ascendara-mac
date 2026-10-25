@@ -16,10 +16,13 @@ struct CatalogMetadata: Codable, Hashable, Sendable {
     var IsLocal: Bool = false
     var IsCustom: Bool = false
     var TracksHistory: Bool = false
+    var AppVersion: String?
+    var AppDownloadURL: String?
 
     enum CodingKeys: String, CodingKey {
         case Source = "source", SourceName = "sourceName", SourceURL = "sourceUrl", UpdatedAt = "lastUpdated"
         case GetDate = "getDate", GameCount = "games", IsLocal = "local", IsCustom = "customSource", TracksHistory = "timemachine"
+        case AppVersion = "appVersion", MacVersion = "macVersion", AppDownloadURL = "appDownloadURL"
     }
     init() {}
     init(from Decoder: Decoder) throws {
@@ -28,6 +31,18 @@ struct CatalogMetadata: Codable, Hashable, Sendable {
         SourceURL = Values.Text(.SourceURL); UpdatedAt = Values.Text(.UpdatedAt); GetDate = Values.Text(.GetDate)
         GameCount = Values.Text(.GameCount).flatMap(Int.init) ?? 0
         IsLocal = Values.Flag(.IsLocal); IsCustom = Values.Flag(.IsCustom); TracksHistory = Values.Flag(.TracksHistory)
+        AppVersion = Values.Text(.MacVersion) ?? Values.Text(.AppVersion)
+        AppDownloadURL = Values.Text(.AppDownloadURL)
+    }
+
+    func encode(to Encoder: Encoder) throws {
+        var Values = Encoder.container(keyedBy: CodingKeys.self)
+        try Values.encode(Source, forKey: .Source); try Values.encodeIfPresent(SourceName, forKey: .SourceName)
+        try Values.encodeIfPresent(SourceURL, forKey: .SourceURL); try Values.encodeIfPresent(UpdatedAt, forKey: .UpdatedAt)
+        try Values.encodeIfPresent(GetDate, forKey: .GetDate); try Values.encode(GameCount, forKey: .GameCount)
+        try Values.encode(IsLocal, forKey: .IsLocal); try Values.encode(IsCustom, forKey: .IsCustom)
+        try Values.encode(TracksHistory, forKey: .TracksHistory)
+        try Values.encodeIfPresent(AppVersion, forKey: .AppVersion); try Values.encodeIfPresent(AppDownloadURL, forKey: .AppDownloadURL)
     }
 }
 

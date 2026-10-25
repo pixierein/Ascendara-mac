@@ -125,7 +125,7 @@ struct LibraryDashboardView: View {
                     VStack(alignment: .leading, spacing: 3) {
                         Text(Store.Settings.DisplayName.isEmpty ? "Guest" : Store.Settings.DisplayName)
                             .font(.system(size: 14, weight: .semibold)).lineLimit(1)
-                        Text("\(Store.Library.count) Total Games")
+                        Text(I18n.Interpolated("\(Store.Library.count) Total Games"))
                             .font(.system(size: 11)).foregroundStyle(Theme.SecondaryText)
                     }
                     Spacer(minLength: 0)
@@ -137,16 +137,16 @@ struct LibraryDashboardView: View {
             }.buttonStyle(MotionButtonStyle())
 
             Menu {
-                Button("Add a game…") { Store.ImportGame() }
-                Button("Scan Steam library") { Store.ScanSteamLibrary() }
+                Button(I18n.T("Add a game…")) { Store.ImportGame() }
+                Button(I18n.T("Scan Steam library")) { Store.ScanSteamLibrary() }
                 Divider()
-                Menu("Add Retro ROM folder") {
+                Menu(I18n.T("Add Retro ROM folder")) {
                     ForEach(Retro.Platforms) { Platform in
                         Button(Platform.Name) { Scan(Platform) }
                     }
                 }
             } label: {
-                Label("Add to Library", systemImage: "plus")
+                Label(I18n.T("Add to Library"), systemImage: "plus")
                     .font(.system(size: 13, weight: .semibold))
                     .frame(maxWidth: .infinity).padding(.vertical, 11)
                     .foregroundStyle(.white)
@@ -156,7 +156,7 @@ struct LibraryDashboardView: View {
             .menuStyle(.borderlessButton)
             .padding(.horizontal, 12).padding(.top, 14).padding(.bottom, 18)
 
-            Text("LIBRARY").font(.system(size: 10, weight: .bold)).tracking(1.8)
+            Text(I18n.T("LIBRARY")).font(.system(size: 10, weight: .bold)).tracking(1.8)
                 .foregroundStyle(Theme.SecondaryText).padding(.leading, 16).padding(.bottom, 7)
             ForEach([
                 ("All Games", "books.vertical"), ("Favorites", "heart"),
@@ -168,22 +168,22 @@ struct LibraryDashboardView: View {
 
             let Collections = Array(Set(Store.Library.map(\.Collection).filter { !$0.isEmpty })).sorted()
             if !Collections.isEmpty {
-                Text("COLLECTIONS").font(.system(size: 10, weight: .bold)).tracking(1.8)
+                Text(I18n.T("COLLECTIONS")).font(.system(size: 10, weight: .bold)).tracking(1.8)
                     .foregroundStyle(Theme.SecondaryText).padding(.leading, 16).padding(.top, 19).padding(.bottom, 7)
                 ForEach(Collections, id: \.self) { Name in SidebarButton("Collection: " + Name, "folder") }
             }
             Spacer(minLength: 16)
             Menu {
-                Menu("Library Backups") {
-                    Button("Export library backup…") { Store.ExportLibrary() }
-                    Button("Restore library backup…") { Store.ImportLibrary() }
+                Menu(I18n.T("Library Backups")) {
+                    Button(I18n.T("Export library backup…")) { Store.ExportLibrary() }
+                    Button(I18n.T("Restore library backup…")) { Store.ImportLibrary() }
                 }
-                Button("Calculate Library Value") { ShowingLibraryValue = true }
+                Button(I18n.T("Calculate Library Value")) { ShowingLibraryValue = true }
                 Divider()
-                Button("Check game updates") { ShowingUpdates = true }
+                Button(I18n.T("Check game updates")) { ShowingUpdates = true }
             } label: {
                 HStack {
-                    Label("Library tools", systemImage: "wrench")
+                    Label(I18n.T("Library tools"), systemImage: "wrench")
                     Spacer()
                     Image(systemName: "chevron.down").font(.system(size: 10))
                 }
@@ -228,7 +228,7 @@ struct LibraryDashboardView: View {
     private var DiskSpaceCard: some View {
         return VStack(alignment: .leading, spacing: 9) {
             HStack {
-                Label("Available Space", systemImage: "externaldrive").lineLimit(1)
+                Label(I18n.T("Available Space"), systemImage: "externaldrive").lineLimit(1)
                 Spacer(minLength: 3)
                 Text(Disk.Total > 0 ? ByteCountFormatter.string(fromByteCount: Disk.Available, countStyle: .file) : "—")
                     .monospacedDigit()
@@ -238,7 +238,7 @@ struct LibraryDashboardView: View {
                 ProgressView(value: min(Double(Disk.Games), Double(Disk.Total)), total: Double(Disk.Total))
                     .tint(Theme.Accent)
                 HStack {
-                    Text("\(ByteCountFormatter.string(fromByteCount: Disk.Games, countStyle: .file)) games")
+                    Text(I18n.Interpolated("\(ByteCountFormatter.string(fromByteCount: Disk.Games, countStyle: .file)) games"))
                     Spacer()
                     Text(ByteCountFormatter.string(fromByteCount: Disk.Total, countStyle: .file))
                 }.font(.system(size: 10)).foregroundStyle(Theme.SecondaryText).monospacedDigit()
@@ -251,7 +251,7 @@ struct LibraryDashboardView: View {
         HStack(spacing: 11) {
             HStack(spacing: 10) {
                 Image(systemName: "magnifyingglass").foregroundStyle(Theme.SecondaryText)
-                TextField("Search your games…", text: $Query)
+                TextField(I18n.T("Search your games…"), text: $Query)
                     .textFieldStyle(.plain).font(.system(size: 13))
             }
             .padding(.horizontal, 14).frame(height: 40)
@@ -267,22 +267,22 @@ struct LibraryDashboardView: View {
             }
             Menu {
                 if Section == "Retro" {
-                    Toggle("Set up consoles only", isOn: $RetroSetupOnly)
-                    Toggle("Favorites only", isOn: $RetroFavoritesOnly)
+                    Toggle(I18n.T("Set up consoles only"), isOn: $RetroSetupOnly)
+                    Toggle(I18n.T("Favorites only"), isOn: $RetroFavoritesOnly)
                 } else if Section == "Play Later" {
-                    Text("Search by game name above")
+                    Text(I18n.T("Search by game name above"))
                 } else {
-                    Picker("Sort", selection: $Sort) {
-                        Text("Recently played").tag("Recently played")
-                        Text("Name").tag("Name")
-                        Text("Playtime").tag("Playtime")
+                    Picker(I18n.T("Sort"), selection: $Sort) {
+                        Text(I18n.T("Recently played")).tag("Recently played")
+                        Text(I18n.T("Name")).tag("Name")
+                        Text(I18n.T("Playtime")).tag("Playtime")
                     }
                     Divider()
-                    Toggle("Installed only", isOn: $InstalledOnly)
-                    Toggle("Managed by Ascendara", isOn: $ManagedOnly)
+                    Toggle(I18n.T("Installed only"), isOn: $InstalledOnly)
+                    Toggle(I18n.T("Managed by Ascendara"), isOn: $ManagedOnly)
                 }
             } label: {
-                Label("Filters", systemImage: "slider.horizontal.3")
+                Label(I18n.T("Filters"), systemImage: "slider.horizontal.3")
                     .font(.system(size: 12, weight: .medium))
                     .padding(.horizontal, 13).frame(height: 40)
                     .background(Theme.Card, in: RoundedRectangle(cornerRadius: 8))
@@ -292,7 +292,7 @@ struct LibraryDashboardView: View {
                 Button { SelectionMode.toggle(); SelectedIds.removeAll() } label: {
                     Image(systemName: SelectionMode ? "checkmark.circle.fill" : "checkmark.square")
                         .frame(width: 40, height: 40).background(Theme.Card, in: RoundedRectangle(cornerRadius: 8))
-                }.buttonStyle(MotionButtonStyle()).help("Select games")
+                }.buttonStyle(MotionButtonStyle()).help(I18n.T("Select games"))
             }
         }
     }
@@ -310,8 +310,8 @@ struct LibraryDashboardView: View {
             Image(systemName: Symbol).font(.system(size: 23)).foregroundStyle(Theme.Accent)
                 .frame(width: 48, height: 48).background(Theme.Accent.opacity(0.12), in: RoundedRectangle(cornerRadius: 13))
             VStack(alignment: .leading, spacing: 4) {
-                Text(Title).font(.system(size: 27, weight: .bold))
-                Text(Subtitle).font(.system(size: 13)).foregroundStyle(Theme.SecondaryText)
+                Text(I18n.T(Title)).font(.system(size: 27, weight: .bold))
+                Text(I18n.T(Subtitle)).font(.system(size: 13)).foregroundStyle(Theme.SecondaryText)
             }
             Spacer()
         }
@@ -320,17 +320,17 @@ struct LibraryDashboardView: View {
     @ViewBuilder private func LocalContent(Width: CGFloat) -> some View {
         if SelectionMode && !SelectedIds.isEmpty {
             HStack {
-                Text("\(SelectedIds.count) selected").font(.system(size: 12, weight: .semibold))
-                Button("Add to favorites") {
+                Text(I18n.Interpolated("\(SelectedIds.count) selected")).font(.system(size: 12, weight: .semibold))
+                Button(I18n.T("Add to favorites")) {
                     for Game in Store.Library where SelectedIds.contains(Game.Id) && !Game.Favorite { Store.ToggleLibraryFavorite(Game) }
                     SelectedIds.removeAll(); SelectionMode = false
                 }
-                Button("Clear selection") { SelectedIds.removeAll() }
+                Button(I18n.T("Clear selection")) { SelectedIds.removeAll() }
             }.buttonStyle(SecondaryButtonStyle())
         }
         if LocalGames.isEmpty {
             LibraryBlank(Symbol: Section == "Favorites" ? "heart" : Section == "History" ? "clock" : "books.vertical",
-                         Title: "No games found",
+                         Title: I18n.T("No games found"),
                          Detail: Query.isEmpty ? (Store.Library.isEmpty ? "Add a game to start building your library." : "There are no games in this section yet.") : "Try another search or adjust the filters.")
         } else if ListLayout {
             LazyVStack(spacing: 9) { ForEach(LocalGames) { Game in LocalRow(Game) } }
@@ -361,7 +361,7 @@ struct LibraryDashboardView: View {
                                 .background(Theme.Accent, in: RoundedRectangle(cornerRadius: 7))
                         }.buttonStyle(MotionButtonStyle())
                             .disabled(Store.BusyGameIds.contains(Game.Id) || !Game.IsInstalled && !Store.IsRunning(Game))
-                            .accessibilityLabel("\(Store.IsRunning(Game) ? "Stop" : "Play") \(Game.Name)")
+                            .accessibilityLabel(I18n.Interpolated("\(Store.IsRunning(Game) ? "Stop" : "Play") \(Game.Name)"))
                         Menu { LocalActions(Game) } label: {
                             Image(systemName: "line.3.horizontal")
                                 .font(.system(size: 13, weight: .semibold))
@@ -371,8 +371,8 @@ struct LibraryDashboardView: View {
                                 .contentShape(RoundedRectangle(cornerRadius: 7))
                         }.menuStyle(.borderlessButton)
                             .frame(width: 34)
-                            .help("More options for \(Game.Name)")
-                            .accessibilityLabel("More options for \(Game.Name)")
+                            .help(I18n.Interpolated("More options for \(Game.Name)"))
+                            .accessibilityLabel(I18n.Interpolated("More options for \(Game.Name)"))
                     }
                     .padding(9)
                 }
@@ -390,6 +390,12 @@ struct LibraryDashboardView: View {
                     Text(Game.Name).font(.system(size: 13, weight: .semibold)).lineLimit(1)
                     Text(Game.LastPlayedAt == nil ? "Not played yet" : FormatPlayTime(Game.PlayTimeSeconds) + " played")
                         .font(.system(size: 11)).foregroundStyle(Theme.SecondaryText).lineLimit(1)
+                    if let Size = Game.InstalledSizeBytes {
+                        Text(I18n.Interpolated("\(ByteCountFormatter.string(fromByteCount: Size, countStyle: .file)) installed")).font(.system(size: 11)).foregroundStyle(Theme.SecondaryText)
+                    }
+                    if Store.AvailableGameUpdates[Game.Id] != nil {
+                        Text(I18n.T("Update available")).font(.system(size: 11)).foregroundStyle(Theme.Accent)
+                    }
                 }.frame(maxWidth: .infinity, alignment: .leading).padding(12)
             }.buttonStyle(MotionButtonStyle())
         }
@@ -416,6 +422,9 @@ struct LibraryDashboardView: View {
                 Text(Game.Name).font(.system(size: 13, weight: .semibold))
                 Text(Game.LastPlayedAt == nil ? "Not played yet" : FormatPlayTime(Game.PlayTimeSeconds) + " played")
                     .font(.system(size: 11)).foregroundStyle(Theme.SecondaryText)
+                if let Size = Game.InstalledSizeBytes {
+                    Text(I18n.Interpolated("\(ByteCountFormatter.string(fromByteCount: Size, countStyle: .file)) installed")).font(.system(size: 11)).foregroundStyle(Theme.SecondaryText)
+                }
             }
             Spacer()
             if Game.Favorite { Image(systemName: "heart.fill").foregroundStyle(.pink) }
@@ -428,26 +437,29 @@ struct LibraryDashboardView: View {
                     .frame(width: 32, height: 32)
                     .contentShape(Rectangle())
             }
-            .menuStyle(.borderlessButton).help("More options for \(Game.Name)")
+            .menuStyle(.borderlessButton).help(I18n.Interpolated("More options for \(Game.Name)"))
         }
         .padding(10).background(Theme.Card, in: RoundedRectangle(cornerRadius: 10))
         .contextMenu { LocalActions(Game) }
     }
 
     @ViewBuilder private func LocalActions(_ Game: LibraryGame) -> some View {
-        Button("Game options…") { Editor = Game }
+        Button(I18n.T("Game options…")) { Editor = Game }
         Button(Game.Favorite ? "Remove from favorites" : "Add to favorites") { Store.ToggleLibraryFavorite(Game) }
-        Button("Show in Finder") { Store.RevealGame(Game) }
+        Button(I18n.T("Show in Finder")) { Store.RevealGame(Game) }
+        Button(I18n.T("Reinstall…")) { Store.RequestReinstall(Game) }.disabled(Store.IsRunning(Game) || Store.BusyGameIds.contains(Game.Id))
+        Button(I18n.T("Move installation…")) { Store.MoveGame(Game) }.disabled(!Game.IsManaged || Store.IsRunning(Game) || Store.BusyGameIds.contains(Game.Id))
+        Button(I18n.T("Measure installed size")) { Task { do { try await Store.LibraryStore.MeasureSize(Game.Id) } catch { Store.Report(error) } } }
         Divider()
-        Button("Create save backup…") { Store.CreateBackup(Game) }
-        Button("Restore save backup…") { Store.RestoreBackup(Game) }
-        Button("Remove from library…", role: .destructive) { Store.RemoveGame(Game) }
+        Button(I18n.T("Create save backup…")) { Store.CreateBackup(Game) }
+        Button(I18n.T("Restore save backup…")) { Store.RestoreBackup(Game) }
+        Button(I18n.T("Remove from library…"), role: .destructive) { Store.RemoveGame(Game) }
     }
 
     private var PlayLaterContent: some View {
         Group {
             if PlayLaterGames.isEmpty {
-                LibraryBlank(Symbol: "clock", Title: "No games saved yet", Detail: "Save a game from Search to find it here later.")
+                LibraryBlank(Symbol: "clock", Title: I18n.T("No games saved yet"), Detail: I18n.T("Save a game from Search to find it here later."))
             } else {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 220), spacing: 16)], spacing: 16) {
                     ForEach(PlayLaterGames) { Game in GameCard(Game: Game) }
@@ -462,7 +474,7 @@ struct LibraryDashboardView: View {
     }
 
     private func Scan(_ Platform: RetroPlatform) {
-        guard let Folder = Store.ChooseFolder(Title: "Choose your \(Platform.Name) ROM folder") else { return }
+        guard let Folder = Store.ChooseFolder(Title: I18n.Interpolated("Choose your \(Platform.Name) ROM folder")) else { return }
         Task {
             do {
                 let Count = try await Retro.Scan(Platform: Platform, Folder: Folder)
@@ -481,8 +493,8 @@ private struct LibraryBlank: View {
     var body: some View {
         VStack(spacing: 14) {
             Image(systemName: Symbol).font(.system(size: 41)).foregroundStyle(Theme.SecondaryText.opacity(0.6))
-            Text(Title).font(.system(size: 15, weight: .semibold))
-            Text(Detail).font(.system(size: 12)).foregroundStyle(Theme.SecondaryText).multilineTextAlignment(.center)
+            Text(I18n.T(Title)).font(.system(size: 15, weight: .semibold))
+            Text(I18n.T(Detail)).font(.system(size: 12)).foregroundStyle(Theme.SecondaryText).multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity, minHeight: 360)
         .padding(24)
@@ -525,10 +537,10 @@ private struct RetroLibraryDashboard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             HStack(spacing: 18) {
-                Text("\(Service.Games.count) games in your library")
-                Text("\(Service.Profiles.values.filter { !$0.ExecutablePath.isEmpty }.count) systems set up")
+                Text(I18n.Interpolated("\(Service.Games.count) games in your library"))
+                Text(I18n.Interpolated("\(Service.Profiles.values.filter { !$0.ExecutablePath.isEmpty }.count) systems set up"))
                 Spacer()
-                Button("All emulators") { Tab = "Emulators" }.buttonStyle(MotionButtonStyle())
+                Button(I18n.T("All emulators")) { Tab = "Emulators" }.buttonStyle(MotionButtonStyle())
             }.font(.system(size: 11)).foregroundStyle(Theme.SecondaryText)
             Rectangle().fill(Theme.Border.opacity(0.5)).frame(height: 1)
             HStack(alignment: .top, spacing: 18) {
@@ -547,7 +559,7 @@ private struct RetroLibraryDashboard: View {
                         EmulatorContent
                     } else if Tab == "Catalogue" {
                         VStack(alignment: .leading, spacing: 10) {
-                            Text("Your local console catalogue")
+                            Text(I18n.T("Your local console catalogue"))
                                 .font(.system(size: 12)).foregroundStyle(Theme.SecondaryText)
                             ForEach(Service.Platforms.filter { SelectedPlatform == "all" || $0.Id == SelectedPlatform }) { Platform in
                                 Button { SelectedPlatform = Platform.Id; Tab = "My library" } label: {
@@ -555,7 +567,7 @@ private struct RetroLibraryDashboard: View {
                                         Image(systemName: "gamecontroller").foregroundStyle(Theme.Accent).frame(width: 24)
                                         Text(Platform.Name)
                                         Spacer()
-                                        Text("\(Service.Games.filter { $0.PlatformId == Platform.Id }.count) games")
+                                        Text(I18n.Interpolated("\(Service.Games.filter { $0.PlatformId == Platform.Id }.count) games"))
                                             .foregroundStyle(Theme.SecondaryText)
                                         Image(systemName: "chevron.right")
                                     }.font(.system(size: 12)).padding(12)
@@ -567,23 +579,23 @@ private struct RetroLibraryDashboard: View {
                         HStack(spacing: 12) {
                             HStack(spacing: 8) {
                                 Image(systemName: "magnifyingglass")
-                                TextField("Search your Retro library…", text: $GameQuery).textFieldStyle(.plain)
+                                TextField(I18n.T("Search your Retro library…"), text: $GameQuery).textFieldStyle(.plain)
                             }
                             .padding(10).background(Theme.Card, in: RoundedRectangle(cornerRadius: 8))
                             Menu {
-                                Button("Title: A–Z") { GameSort = "Title: A–Z" }
-                                Button("Recently played") { GameSort = "Recently played" }
+                                Button(I18n.T("Title: A–Z")) { GameSort = "Title: A–Z" }
+                                Button(I18n.T("Recently played")) { GameSort = "Recently played" }
                             } label: { Label(GameSort, systemImage: "line.3.horizontal.decrease") }
                                 .menuStyle(.borderlessButton)
-                            Toggle("Favorites", isOn: $FavoritesOnly).toggleStyle(.checkbox)
+                            Toggle(I18n.T("Favorites"), isOn: $FavoritesOnly).toggleStyle(.checkbox)
                         }.font(.system(size: 11))
                         if Games.isEmpty {
                             VStack(spacing: 13) {
                                 Image(systemName: "gamecontroller").font(.system(size: 38)).foregroundStyle(Theme.Accent)
-                                Text("Bring your Retro library together").font(.system(size: 16, weight: .semibold))
-                                Text("Choose a console, connect its emulator, and add a ROM folder. Your games will appear here.")
+                                Text(I18n.T("Bring your Retro library together")).font(.system(size: 16, weight: .semibold))
+                                Text(I18n.T("Choose a console, connect its emulator, and add a ROM folder. Your games will appear here."))
                                     .font(.system(size: 11)).foregroundStyle(Theme.SecondaryText).multilineTextAlignment(.center)
-                                Button("Set up a console") {
+                                Button(I18n.T("Set up a console")) {
                                     Editing = Service.Platforms.first { $0.Id == SelectedPlatform } ?? Service.Platforms.first
                                 }.buttonStyle(PrimaryButtonStyle())
                             }
@@ -598,7 +610,7 @@ private struct RetroLibraryDashboard: View {
                                             .frame(maxWidth: .infinity, minHeight: 95)
                                         Text(Game.Name).font(.system(size: 12, weight: .semibold)).lineLimit(2)
                                         HStack {
-                                            Button("Play") { Task { do { try await Service.Launch(Game) } catch { Store.Report(error) } } }
+                                            Button(I18n.T("Play")) { Task { do { try await Service.Launch(Game) } catch { Store.Report(error) } } }
                                                 .buttonStyle(PrimaryButtonStyle()).disabled(!Game.IsInstalled || !Game.MissingDependencies.isEmpty)
                                             Spacer()
                                             Button {
@@ -610,13 +622,13 @@ private struct RetroLibraryDashboard: View {
                                         }
                                     }.padding(12).background(Theme.Card, in: RoundedRectangle(cornerRadius: 10))
                                         .contextMenu {
-                                            Button("Console setup") { Editing = Service.Platforms.first { $0.Id == Game.PlatformId } }
-                                            Button("Show in Finder") {
+                                            Button(I18n.T("Console setup")) { Editing = Service.Platforms.first { $0.Id == Game.PlatformId } }
+                                            Button(I18n.T("Show in Finder")) {
                                                 if let Path = Game.FilePaths.first {
                                                     NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: Path)])
                                                 }
                                             }
-                                            Button("Remove from library…", role: .destructive) {
+                                            Button(I18n.T("Remove from library…"), role: .destructive) {
                                                 do { try Service.Remove(Game) } catch { Store.Report(error) }
                                             }
                                         }
@@ -633,20 +645,20 @@ private struct RetroLibraryDashboard: View {
     private var ConsolePanel: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Text("Consoles").font(.system(size: 12, weight: .semibold))
+                Text(I18n.T("Consoles")).font(.system(size: 12, weight: .semibold))
                 Spacer()
-                Text("\(Service.Platforms.count)").foregroundStyle(Theme.SecondaryText)
+                Text(I18n.Interpolated("\(Service.Platforms.count)")).foregroundStyle(Theme.SecondaryText)
             }
             HStack {
                 Image(systemName: "magnifyingglass")
-                TextField("Find a console", text: $ConsoleQuery).textFieldStyle(.plain)
+                TextField(I18n.T("Find a console"), text: $ConsoleQuery).textFieldStyle(.plain)
             }.padding(9).background(Theme.Background, in: RoundedRectangle(cornerRadius: 7))
             HStack(spacing: 4) {
-                Button("All") { SetupOnly = false }
-                Button("Set up") { SetupOnly = true }
+                Button(I18n.T("All")) { SetupOnly = false }
+                Button(I18n.T("Set up")) { SetupOnly = true }
             }.buttonStyle(SecondaryButtonStyle())
             Button { SelectedPlatform = "all" } label: {
-                Label("All consoles", systemImage: "books.vertical").frame(maxWidth: .infinity, alignment: .leading)
+                Label(I18n.T("All consoles"), systemImage: "books.vertical").frame(maxWidth: .infinity, alignment: .leading)
             }.buttonStyle(MotionButtonStyle()).padding(9)
                 .background(SelectedPlatform == "all" ? Theme.Accent.opacity(0.15) : .clear, in: RoundedRectangle(cornerRadius: 7))
             ScrollView {
@@ -657,7 +669,7 @@ private struct RetroLibraryDashboard: View {
                                 Image(systemName: "gamecontroller").frame(width: 17)
                                 Text(Platform.Name).lineLimit(1)
                                 Spacer(minLength: 0)
-                                Text("\(Service.Games.filter { $0.PlatformId == Platform.Id }.count)")
+                                Text(I18n.Interpolated("\(Service.Games.filter { $0.PlatformId == Platform.Id }.count)"))
                             }.padding(.horizontal, 9).padding(.vertical, 8)
                                 .background(SelectedPlatform == Platform.Id ? Theme.Accent.opacity(0.15) : .clear, in: RoundedRectangle(cornerRadius: 7))
                         }.buttonStyle(MotionButtonStyle())
@@ -686,7 +698,7 @@ private struct RetroLibraryDashboard: View {
                             .font(.system(size: 10)).foregroundStyle(Theme.SecondaryText)
                     }
                     Spacer()
-                    Button("Set up") { Editing = Platform }.buttonStyle(SecondaryButtonStyle())
+                    Button(I18n.T("Set up")) { Editing = Platform }.buttonStyle(SecondaryButtonStyle())
                 }.padding(10).background(Theme.Card, in: RoundedRectangle(cornerRadius: 9))
             }
         }

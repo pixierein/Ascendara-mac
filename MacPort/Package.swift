@@ -12,12 +12,15 @@ let package = Package(
         .executable(name: "AscendaraCrashReporter", targets: ["AscendaraCrashReporter"])
     ],
     targets: [
-        .executableTarget(name: "AscendaraDownloadWorker", path: "Source/AscendaraDownloadWorker"),
+        .target(name: "AscendaraCore", path: "Source/AscendaraCore"),
+        .target(name: "ArchiveSupport", path: "Source/ArchiveSupport", linkerSettings: [.linkedLibrary("archive")]),
+        .executableTarget(name: "AscendaraDownloadWorker", dependencies: ["AscendaraCore"], path: "Source/AscendaraDownloadWorker"),
         .executableTarget(name: "AscendaraGameHandler", path: "Source/AscendaraGameHandler"),
-        .executableTarget(name: "AscendaraTorrentHandler", path: "Source/AscendaraTorrentHandler"),
+        .executableTarget(name: "AscendaraTorrentHandler", dependencies: ["AscendaraCore", "ArchiveSupport"], path: "Source/AscendaraTorrentHandler"),
         .executableTarget(name: "AscendaraCrashReporter", path: "Source/AscendaraCrashReporter"),
         .executableTarget(
             name: "Ascendara",
+            dependencies: ["AscendaraCore", "ArchiveSupport"],
             path: "Source/Ascendara",
             exclude: ["Resources/AppIcon.icns"],
             resources: [.process("Resources")]

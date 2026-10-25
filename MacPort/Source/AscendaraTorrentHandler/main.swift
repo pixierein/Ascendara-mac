@@ -1,5 +1,7 @@
 import Foundation
 import Darwin
+import AscendaraCore
+import ArchiveSupport
 
 private struct Job: Decodable {
     let Id: UUID
@@ -169,7 +171,6 @@ private final class Handler {
     private func controlTorrent(_ hash: String, operation: String) async throws {
         do { _ = try await request("torrents/\(operation)", body: form(["hashes": hash])) }
         catch {
-            // qBittorrent v4 calls these pause/resume, v5 stop/start.
             _ = try await request("torrents/\(operation == "stop" ? "pause" : "resume")", body: form(["hashes": hash]))
         }
     }
@@ -246,6 +247,11 @@ private final class Handler {
     }
 
     private func extract(_ archive: URL, into destination: URL) throws {
+        var Expanded: Int64 = 0
+        var ArchiveError = [CChar](repeating: 0, count: 2048)
+        if AAArchiveSize(archive.path, &Expanded, &ArchiveError, ArchiveError.count) == 0 {
+            try StorageBudget.Check(at: destination.deletingLastPathComponent(), Remaining: Expanded)
+        }
         let isSevenZip = ["rar", "7z"].contains(archive.pathExtension.lowercased())
         let resourceTool = Bundle.main.executableURL?.deletingLastPathComponent().deletingLastPathComponent()
             .appendingPathComponent("Resources/Tools/7zz")
@@ -258,6 +264,14 @@ private final class Handler {
         } else { tool = URL(fileURLWithPath: "/usr/bin/bsdtar") }
         let listing = try run(tool, isSevenZip ? ["l", "-slt", "-ba", "--", archive.path] : ["-tf", archive.path])
         if isSevenZip {
+            let Sizes = listing.components(separatedBy: .newlines).filter { $0.hasPrefix("Size = ") }
+            let Total = try Sizes.reduce(Int64(0)) { Total, Line in
+                guard let Size = Int64(Line.dropFirst(7).trimmingCharacters(in: .whitespaces)), Size >= 0, Total <= Int64.max - Size else {
+                    throw HandlerError.message("The archive's expanded size is invalid.")
+                }
+                return Total + Size
+            }
+            try StorageBudget.Check(at: destination.deletingLastPathComponent(), Remaining: Total)
             for line in listing.components(separatedBy: .newlines) where line.hasPrefix("Path = ") {
                 try Self.validateArchivePath(String(line.dropFirst(7)))
             }

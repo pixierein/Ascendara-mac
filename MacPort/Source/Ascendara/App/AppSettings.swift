@@ -1,7 +1,8 @@
 import Foundation
+import AscendaraCore
 
 enum AppVersion {
-    static let Current = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "11.6.1"
+    static let Current = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.1"
 }
 
 struct AppSettings: Codable, Equatable {
@@ -40,6 +41,16 @@ struct AppSettings: Codable, Equatable {
     var DockScale = 1.0
     var BackupDirectory = FileManager.default.homeDirectoryForCurrentUser
         .appendingPathComponent("Games/Ascendara Backups").path
+    var SpaceSavingExtraction = true
+    var ExtractionDirectory = ""
+    var Language = "en"
+    var CustomTheme: ThemePalette?
+    var NotifyDownloads = true
+    var NotifyFailures = true
+    var NotifyUpdates = true
+    var NotifyAchievements = true
+    var SystemNotifications = false
+    var AutomaticallyCheckGameUpdates = true
 
     static func Load(From URL: URL) throws -> AppSettings {
         let DefaultData = try JSONEncoder().encode(AppSettings())
@@ -83,7 +94,8 @@ enum AppPaths {
 enum AppRoute: String, CaseIterable, Identifiable, Codable {
     case Home, Search, Library, Downloads, Wishlist, Profile, Ascend, Settings, Sources, Tools, TorBox, Workshop, Retro
     var id: String { rawValue }
-    var Title: String {
+    var Title: String { I18n.T(UntranslatedTitle) }
+    private var UntranslatedTitle: String {
         switch self {
         case .Settings: return "Preferences"
         case .Sources: return "External sources"

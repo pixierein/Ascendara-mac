@@ -9,56 +9,74 @@ struct LibraryEditorView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
             HStack {
-                Text("Game options").font(.system(size: 24, weight: .bold))
+                Text(I18n.T("Game options")).font(.system(size: 24, weight: .bold))
                 Spacer()
-                IconButton(Symbol: "xmark", Help: "Close") { Dismiss() }
+                IconButton(Symbol: "xmark", Help: I18n.T("Close")) { Dismiss() }
             }
             HStack(spacing: 18) {
                 GameArtwork(URL: Game.ArtworkURL, Name: Game.Name).frame(width: 160, height: 100)
                 VStack(alignment: .leading, spacing: 8) {
                     Text(Game.Name).font(.system(size: 19, weight: .bold))
-                    Text("\(FormatPlayTime(Game.PlayTimeSeconds)) played").foregroundStyle(Theme.SecondaryText)
-                    if let LastPlayed = Game.LastPlayedAt { Text("Last played \(LastPlayed.formatted(date: .abbreviated, time: .shortened))").font(.system(size: 11)).foregroundStyle(Theme.SecondaryText) }
+                    Text(I18n.Interpolated("\(FormatPlayTime(Game.PlayTimeSeconds)) played")).foregroundStyle(Theme.SecondaryText)
+                    if let Size = Store.Library.first(where: { $0.Id == Game.Id })?.InstalledSizeBytes {
+                        Text(I18n.Interpolated("\(ByteCountFormatter.string(fromByteCount: Size, countStyle: .file)) installed")).font(.caption).foregroundStyle(Theme.SecondaryText)
+                    }
+                    if let LastPlayed = Game.LastPlayedAt { Text(I18n.Interpolated("Last played \(LastPlayed.formatted(date: .abbreviated, time: .shortened))")).font(.system(size: 11)).foregroundStyle(Theme.SecondaryText) }
                 }
             }
             Form {
-                TextField("Name", text: $Game.Name)
+                TextField(I18n.T("Name"), text: $Game.Name)
                 HStack {
-                    TextField("Executable", text: $Game.ExecutablePath)
-                    Button("Choose…") { ChooseExecutable() }
+                    TextField(I18n.T("Executable"), text: $Game.ExecutablePath)
+                    Button(I18n.T("Choose…")) { ChooseExecutable() }
                 }
-                Picker("Launch with", selection: $Game.LaunchMode) {
+                Picker(I18n.T("Launch with"), selection: $Game.LaunchMode) {
                     ForEach(LaunchMode.allCases) { Mode in Text(Mode.rawValue).tag(Mode) }
                 }
                 LabeledContent("Launch arguments") {
                     VStack(alignment: .leading, spacing: 5) {
                         TextEditor(text: $Arguments).font(.system(size: 11, design: .monospaced)).frame(height: 45)
-                        Text("One argument per line; spaces are preserved.").font(.system(size: 10)).foregroundStyle(Theme.SecondaryText)
+                        Text(I18n.T("One argument per line; spaces are preserved.")).font(.system(size: 10)).foregroundStyle(Theme.SecondaryText)
                     }.frame(width: 360)
                 }
-                TextField("Collection", text: $Game.Collection)
-                TextField("Save directory", text: Binding(get: { Game.SaveDirectory ?? "" }, set: { Game.SaveDirectory = $0.isEmpty ? nil : $0 }))
+                TextField(I18n.T("Collection"), text: $Game.Collection)
+                TextField(I18n.T("Save directory"), text: Binding(get: { Game.SaveDirectory ?? "" }, set: { Game.SaveDirectory = $0.isEmpty ? nil : $0 }))
                 if Game.LaunchMode == .Wine {
-                    TextField("Wine prefix", text: Binding(get: { Game.WinePrefixPath ?? "" }, set: { Game.WinePrefixPath = $0.isEmpty ? nil : $0 }))
+                    TextField(I18n.T("Wine prefix"), text: Binding(get: { Game.WinePrefixPath ?? "" }, set: { Game.WinePrefixPath = $0.isEmpty ? nil : $0 }))
                 }
                 if Game.LaunchMode == .Highball {
-                    TextField("Highball bottle", text: $Game.HighballBottle)
-                    Picker("Renderer", selection: $Game.Renderer) {
+                    TextField(I18n.T("Highball bottle"), text: $Game.HighballBottle)
+                    Picker(I18n.T("Renderer"), selection: $Game.Renderer) {
                         ForEach(["auto", "dxmt", "d3dmetal", "dxvk", "wined3d"], id: \.self) { Renderer in Text(Renderer).tag(Renderer) }
                     }
                 }
-                Toggle("Favorite", isOn: $Game.Favorite)
+                Toggle(I18n.T("Favorite"), isOn: $Game.Favorite)
+                Toggle(I18n.T("Automatically install newer versions from the index"), isOn: $Game.AutomaticallyUpdate).disabled(!Game.IsManaged)
             }.formStyle(.grouped)
             VStack(alignment: .leading, spacing: 7) {
-                Text("Private notes").font(.system(size: 12, weight: .medium))
+                Text(I18n.T("Private notes")).font(.system(size: 12, weight: .medium))
                 TextEditor(text: $Game.Notes).font(.system(size: 12)).frame(height: 72).padding(5).background(Theme.Card).clipShape(RoundedRectangle(cornerRadius: 8))
             }
             HStack {
-                Button("Show in Finder") { Store.RevealGame(Game) }.buttonStyle(SecondaryButtonStyle())
+                Button(I18n.T("Show in Finder")) { Store.RevealGame(Game) }.buttonStyle(SecondaryButtonStyle())
+                Menu(I18n.T("Library tools")) {
+                    Button(I18n.T("Measure installed size")) { Task { do { try await Store.LibraryStore.MeasureSize(Game.Id) } catch { Store.Report(error) } } }
+                    Button(I18n.T("Reinstall…")) { Dismiss(); Store.RequestReinstall(Game) }.disabled(Store.IsRunning(Game))
+                    Button(I18n.T("Move installation…")) { Dismiss(); Store.MoveGame(Game) }.disabled(!Game.IsManaged || Store.IsRunning(Game))
+                }
                 Spacer()
-                Button("Cancel") { Dismiss() }.buttonStyle(SecondaryButtonStyle()).keyboardShortcut(.cancelAction)
-                Button("Save changes") {
+                Button(I18n.T("Cancel")) { Dismiss() }.buttonStyle(SecondaryButtonStyle()).keyboardShortcut(.cancelAction)
+                Button(I18n.T("Save changes")) {
                     Game.LaunchArguments = Arguments.components(separatedBy: .newlines).filter { !$0.isEmpty }
+                    if let Current = Store.Library.first(where: { $0.Id == Game.Id }) {
+                        if Game.ExecutablePath == Current.ExecutablePath {
+                            Game.InstalledSizeBytes = Current.InstalledSizeBytes; Game.SizeMeasuredAt = Current.SizeMeasuredAt
+                        } else { Game.InstalledSizeBytes = nil; Game.SizeMeasuredAt = nil }
+                        Game.PlayTimeSeconds = Current.PlayTimeSeconds; Game.LaunchCount = Current.LaunchCount
+                        Game.LastPlayedAt = Current.LastPlayedAt; Game.LastSession = Current.LastSession
+                        Game.LastSessionId = Current.LastSessionId; Game.LastSessionRecordedSeconds = Current.LastSessionRecordedSeconds
+                        Game.RecordedSessionSecondsById = Current.RecordedSessionSecondsById
+                    }
                     Store.UpdateGame(Game)
                     Dismiss()
                 }.buttonStyle(PrimaryButtonStyle()).disabled(Game.Name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
@@ -76,6 +94,7 @@ struct LibraryEditorView: View {
             Game.ExecutablePath = URL.path
             Game.DirectoryPath = URL.deletingLastPathComponent().path
             Game.LaunchMode = LibraryService.DefaultLaunchMode(for: URL)
+            Game.InstalledSizeBytes = nil; Game.SizeMeasuredAt = nil
         }
     }
 }
@@ -91,12 +110,12 @@ struct LibraryUpdatesView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
             HStack {
-                SectionHeading(Title: "Library updates", Subtitle: "Compare installed versions before opening the latest release", Symbol: "arrow.triangle.2.circlepath")
-                Button("Done") { Dismiss() }.keyboardShortcut(.cancelAction)
+                SectionHeading(Title: I18n.T("Library updates"), Subtitle: I18n.T("Compare installed versions before opening the latest release"), Symbol: "arrow.triangle.2.circlepath")
+                Button(I18n.T("Done")) { Dismiss() }.keyboardShortcut(.cancelAction)
             }
             HStack {
-                if IsChecking { ProgressView().controlSize(.small); Text("Checking \(Results.count) of \(Store.Library.count)…").font(.caption) }
-                else { Text("\(Results.values.filter { $0.Status == .Available }.count) updates available").font(.system(size: 13, weight: .medium)) }
+                if IsChecking { ProgressView().controlSize(.small); Text(I18n.Interpolated("Checking \(Results.count) of \(Store.Library.count)…")).font(.caption) }
+                else { Text(I18n.Interpolated("\(Results.values.filter { $0.Status == .Available }.count) updates available")).font(.system(size: 13, weight: .medium)) }
                 Spacer()
                 Button(IsChecking ? "Cancel" : "Check updates") {
                     if IsChecking { CheckTask?.cancel() } else { CheckAll() }
@@ -104,7 +123,7 @@ struct LibraryUpdatesView: View {
             }
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 14) {
-                    if Store.Library.isEmpty { EmptyPanel(Symbol: "books.vertical", Title: "Your library is empty", Message: "Add an installed game to compare its release with the catalogue.") }
+                    if Store.Library.isEmpty { EmptyPanel(Symbol: "books.vertical", Title: I18n.T("Your library is empty"), Message: I18n.T("Add an installed game to compare its release with the catalogue.")) }
                     ForEach(Store.Library) { Installed in UpdateRow(Installed) }
                 }
             }
@@ -124,22 +143,26 @@ struct LibraryUpdatesView: View {
                     }
                     Spacer()
                     if let Latest = Result?.LatestGame {
-                        Button("View latest") {
+                        if Result?.Status == .Available {
+                            Button(I18n.T("Install update…")) { Dismiss(); Store.RequestReinstall(Installed) }
+                                .buttonStyle(PrimaryButtonStyle()).disabled(Store.IsRunning(Installed))
+                        }
+                        Button(I18n.T("View latest")) {
                             Dismiss()
                             Task { try? await Task.sleep(nanoseconds: 250_000_000); Store.OpenGame(Latest) }
                         }.buttonStyle(SecondaryButtonStyle())
                     }
                 }
                 HStack(spacing: 16) {
-                    Text("Installed: \(Installed.Version ?? "Unknown")").font(.caption)
-                    Text("Latest: \(Result?.LatestVersion ?? "Unknown")").font(.caption).foregroundStyle(Theme.SecondaryText)
+                    Text(I18n.Interpolated("Installed: \(Installed.Version ?? "Unknown")")).font(.caption)
+                    Text(I18n.Interpolated("Latest: \(Result?.LatestVersion ?? "Unknown")")).font(.caption).foregroundStyle(Theme.SecondaryText)
                 }
-                if let Message = Result?.Message { Text(Message).font(.caption).foregroundStyle(Theme.SecondaryText).fixedSize(horizontal: false, vertical: true) }
-                DisclosureGroup("Set installed version") {
+                if let Message = Result?.Message { Text(I18n.T(Message)).font(.caption).foregroundStyle(Theme.SecondaryText).fixedSize(horizontal: false, vertical: true) }
+                DisclosureGroup(I18n.T("Set installed version")) {
                     HStack(spacing: 10) {
-                        TextField("Version from the installed game", text: Binding(get: { VersionInputs[Installed.Id] ?? Installed.Version ?? "" }, set: { VersionInputs[Installed.Id] = $0 }))
+                        TextField(I18n.T("Version from the installed game"), text: Binding(get: { VersionInputs[Installed.Id] ?? Installed.Version ?? "" }, set: { VersionInputs[Installed.Id] = $0 }))
                             .textFieldStyle(.roundedBorder)
-                        Button("Save version") { SaveVersion(Installed) }.buttonStyle(SecondaryButtonStyle()).disabled(IsChecking)
+                        Button(I18n.T("Save version")) { SaveVersion(Installed) }.buttonStyle(SecondaryButtonStyle()).disabled(IsChecking)
                     }.padding(.top, 8)
                 }.font(.caption)
             }
@@ -192,18 +215,18 @@ struct LibraryValueView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 24) {
-            Text("Library Value").font(.system(size: 30, weight: .bold))
+            Text(I18n.T("Library Value")).font(.system(size: 30, weight: .bold))
             HStack(spacing: 4) {
-                Text("Estimated retail value of your game library based on")
-                Button("CheapShark API ↗") { NSWorkspace.shared.open(URL(string: "https://apidocs.cheapshark.com/")!) }
+                Text(I18n.T("Estimated retail value of your game library based on"))
+                Button(I18n.T("CheapShark API ↗")) { NSWorkspace.shared.open(URL(string: "https://apidocs.cheapshark.com/")!) }
                     .buttonStyle(.plain).foregroundStyle(Theme.Accent)
             }
             .font(.system(size: 14)).foregroundStyle(Theme.SecondaryText)
             if IsCalculating {
                 VStack(spacing: 10) {
                     ProgressView().controlSize(.large)
-                    Text("Calculating…").font(.system(size: 13, weight: .semibold))
-                    Text("\(Checked) / \(Games.count)").font(.system(size: 12))
+                    Text(I18n.T("Calculating…")).font(.system(size: 13, weight: .semibold))
+                    Text(I18n.Interpolated("\(Checked) / \(Games.count)")).font(.system(size: 12))
                     Text(CurrentGame).font(.system(size: 11)).lineLimit(1)
                     ProgressView(value: Double(Checked), total: Double(max(Games.count, 1)))
                         .tint(Theme.Accent).frame(maxWidth: 250)
@@ -217,13 +240,13 @@ struct LibraryValueView: View {
                 Text((Unmatched.isEmpty && Failure == nil) ? "Total Library Value" : "Matched Library Value")
                     .font(.system(size: 16)).foregroundStyle(Theme.SecondaryText)
                 Text(Currency).font(.system(size: 40, weight: .bold)).foregroundStyle(Theme.Accent).monospacedDigit()
-                Text("\(Matched) games found" + (Unmatched.isEmpty ? "" : " · \(Unmatched.count) not matched"))
+                Text(I18n.Interpolated("\(Matched) games found") + (Unmatched.isEmpty ? "" : " · \(Unmatched.count) not matched"))
                     .font(.system(size: 13)).foregroundStyle(Theme.SecondaryText)
             }
             .frame(maxWidth: .infinity).padding(24)
             .background(Theme.Accent.opacity(0.1), in: RoundedRectangle(cornerRadius: 11))
             if !PriceEntries.isEmpty {
-                Text("Price Breakdown").font(.system(size: 13, weight: .semibold)).foregroundStyle(Theme.Accent)
+                Text(I18n.T("Price Breakdown")).font(.system(size: 13, weight: .semibold)).foregroundStyle(Theme.Accent)
                 VStack(spacing: 2) {
                     ForEach(PriceEntries.sorted { $0.Price > $1.Price }) { Entry in
                         HStack {
@@ -238,7 +261,7 @@ struct LibraryValueView: View {
                 .padding(8).overlay(RoundedRectangle(cornerRadius: 9).stroke(Theme.Border))
             }
             if !Unmatched.isEmpty {
-                Text("\(Unmatched.count) games not found")
+                Text(I18n.Interpolated("\(Unmatched.count) games not found"))
                     .font(.system(size: 13, weight: .semibold)).foregroundStyle(Theme.SecondaryText)
                 VStack(alignment: .leading, spacing: 6) {
                     ForEach(Array(Unmatched.enumerated()), id: \.offset) { _, Name in
@@ -258,10 +281,10 @@ struct LibraryValueView: View {
             Spacer(minLength: 0)
             HStack {
                 if !IsCalculating {
-                    Button("Recalculate") { Start(Force: true) }.buttonStyle(SecondaryButtonStyle())
+                    Button(I18n.T("Recalculate")) { Start(Force: true) }.buttonStyle(SecondaryButtonStyle())
                 }
                 Spacer()
-                Button("Close") { Dismiss() }.buttonStyle(SecondaryButtonStyle())
+                Button(I18n.T("Close")) { Dismiss() }.buttonStyle(SecondaryButtonStyle())
             }
         }
         .padding(28)

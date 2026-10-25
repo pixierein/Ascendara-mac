@@ -54,41 +54,41 @@ struct WelcomeView: View {
 
     private var LanguagePage: some View {
         VStack(spacing: 30) {
-            Heading("Choose your language", Subtitle: "English is available for this Mac version.", Symbol: "globe")
+            Heading("Choose your language", Subtitle: I18n.T("English is available for this Mac version."), Symbol: "globe")
             Button {} label: {
                 HStack(spacing: 16) {
-                    Text("🇺🇸").font(.system(size: 28))
-                    Text("English").font(.system(size: 24, weight: .semibold))
+                    Text(I18n.T("🇺🇸")).font(.system(size: 28))
+                    Text(I18n.T("English")).font(.system(size: 24, weight: .semibold))
                     Spacer()
                     Image(systemName: "checkmark.circle.fill").foregroundStyle(Theme.Accent)
                 }
                 .padding(26).frame(maxWidth: 470)
                 .background(Theme.Card, in: RoundedRectangle(cornerRadius: 16))
                 .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.Accent, lineWidth: 2))
-            }.buttonStyle(MotionButtonStyle()).accessibilityLabel("English, selected")
-            Button("Next") { Step += 1 }.buttonStyle(PrimaryButtonStyle())
+            }.buttonStyle(MotionButtonStyle()).accessibilityLabel(I18n.T("English, selected"))
+            Button(I18n.T("Next")) { Step += 1 }.buttonStyle(PrimaryButtonStyle())
         }.frame(maxWidth: 900)
     }
 
     private var WelcomePage: some View {
         VStack(spacing: 30) {
-            Heading("Welcome to Ascendara", Subtitle: "Set up the basics, then start exploring games on your Mac.", Symbol: "gamecontroller.fill")
-            Text("Please review the Terms of Service and Privacy Policy before continuing.")
+            Heading("Welcome to Ascendara", Subtitle: I18n.T("Set up the basics, then start exploring games on your Mac."), Symbol: "gamecontroller.fill")
+            Text(I18n.T("Please review the Terms of Service and Privacy Policy before continuing."))
                 .font(.system(size: 19)).foregroundStyle(Theme.SecondaryText)
                 .multilineTextAlignment(.center)
             VStack(alignment: .leading, spacing: 18) {
-                AgreementRow(Value: $AgreedToTerms, Title: "I agree to Ascendara's Terms of Service", Link: "Read Terms", URL: "https://www.ascendara.app/terms")
-                AgreementRow(Value: $AgreedToPrivacy, Title: "I agree to Ascendara's Privacy Policy", Link: "Read Privacy Policy", URL: "https://www.ascendara.app/privacy")
+                AgreementRow(Value: $AgreedToTerms, Title: I18n.T("I agree to Ascendara's Terms of Service"), Link: "Read Terms", URL: "https://www.ascendara.app/terms")
+                AgreementRow(Value: $AgreedToPrivacy, Title: I18n.T("I agree to Ascendara's Privacy Policy"), Link: "Read Privacy Policy", URL: "https://www.ascendara.app/privacy")
             }.padding(26).frame(maxWidth: 700)
                 .background(Theme.Card, in: RoundedRectangle(cornerRadius: 16))
-            Button("Get Started") { Step += 1 }.buttonStyle(PrimaryButtonStyle())
+            Button(I18n.T("Get Started")) { Step += 1 }.buttonStyle(PrimaryButtonStyle())
                 .disabled(!AgreedToTerms || !AgreedToPrivacy)
         }.frame(maxWidth: 900)
     }
 
     private var FreePage: some View {
         VStack(spacing: 26) {
-            Heading("Free to use. No catch.", Subtitle: "Here's what you can do on your Mac.", Symbol: "sparkles")
+            Heading("Free to use. No catch.", Subtitle: I18n.T("Here's what you can do on your Mac."), Symbol: "sparkles")
             HStack(alignment: .top, spacing: 14) {
                 FeatureCard("Download and play", "Browse the game catalogue and manage supported downloads. No account is required.", "arrow.down.circle")
                 FeatureCard("Play together", "Look for games marked Online. Each player needs their own game copy.", "person.2")
@@ -100,36 +100,36 @@ struct WelcomeView: View {
 
     private var DiscoveryPage: some View {
         VStack(spacing: 25) {
-            Heading("How did you find Ascendara?", Subtitle: "This question is optional. Your choice stays on this Mac.", Symbol: "person.2")
+            Heading("How did you find Ascendara?", Subtitle: I18n.T("This question is optional. Your choice stays on this Mac."), Symbol: "person.2")
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 3), spacing: 12) {
                 ForEach(Sources, id: \.self) { Source in
                     Button(Source) { DiscoverySource = Source; Step += 1 }
                         .buttonStyle(WelcomeChoiceStyle(Selected: DiscoverySource == Source))
                 }
             }.frame(maxWidth: 840)
-            Button("Skip →") { Step += 1 }.buttonStyle(.plain).foregroundStyle(Theme.Accent)
+            Button(I18n.T("Skip →")) { Step += 1 }.buttonStyle(.plain).foregroundStyle(Theme.Accent)
                 .font(.system(size: 18, weight: .semibold))
         }.frame(maxWidth: 900)
     }
 
     private var FolderPage: some View {
         VStack(spacing: 28) {
-            Heading("Where should your games go?", Subtitle: "Pick a folder on a drive with room for your downloads.", Symbol: "folder.badge.plus")
+            Heading("Where should your games go?", Subtitle: I18n.T("Pick a folder on a drive with room for your downloads."), Symbol: "folder.badge.plus")
             VStack(alignment: .leading, spacing: 18) {
                 HStack(spacing: 14) {
                     Text(Store.Settings.DownloadDirectory).font(.system(size: 17, design: .monospaced))
                         .lineLimit(2).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading)
-                    Button("Browse") { Store.ChooseDownloadDirectory() }.buttonStyle(PrimaryButtonStyle())
+                    Button(I18n.T("Browse")) { Store.ChooseDownloadDirectory() }.buttonStyle(PrimaryButtonStyle())
                 }
                 if let FreeSpace = FreeSpaceGB, FreeSpace < 40 {
-                    Label("Only \(Int(FreeSpace)) GB free on this drive. Many games need 40 GB or more.", systemImage: "exclamationmark.triangle")
+                    Label(I18n.Interpolated("Only \(Int(FreeSpace)) GB free on this drive. Many games need 40 GB or more."), systemImage: "exclamationmark.triangle")
                         .font(.system(size: 15)).foregroundStyle(.orange)
                         .padding(14).frame(maxWidth: .infinity, alignment: .leading)
                         .background(.orange.opacity(0.1), in: RoundedRectangle(cornerRadius: 9))
                 }
                 Divider()
-                Label("Downloaded games are stored in this folder.", systemImage: "shippingbox")
-                Label("You can change the folder later in Preferences.", systemImage: "plus.circle")
+                Label(I18n.T("Downloaded games are stored in this folder."), systemImage: "shippingbox")
+                Label(I18n.T("You can change the folder later in Preferences."), systemImage: "plus.circle")
             }.padding(24).frame(maxWidth: 820)
                 .background(Theme.Card, in: RoundedRectangle(cornerRadius: 16))
             ContinueButton
@@ -138,7 +138,7 @@ struct WelcomeView: View {
 
     private var CompatibilityPage: some View {
         VStack(spacing: 28) {
-            Heading("Compatibility Layer", Subtitle: "Windows games on your Mac need a compatible runtime.", Symbol: "desktopcomputer")
+            Heading("Compatibility Layer", Subtitle: I18n.T("Windows games on your Mac need a compatible runtime."), Symbol: "desktopcomputer")
             WelcomeCompatibilityView(OnBusyChanged: { CompatibilityBusy = $0 })
             ContinueButton.disabled(CompatibilityBusy)
         }.frame(maxWidth: 900)
@@ -158,7 +158,7 @@ struct WelcomeView: View {
 
     private var ThemePage: some View {
         VStack(spacing: 22) {
-            Heading("Make it yours", Subtitle: "Pick a look. You can change it anytime in Preferences.", Symbol: "paintpalette")
+            Heading("Make it yours", Subtitle: I18n.T("Pick a look. You can change it anytime in Preferences."), Symbol: "paintpalette")
             HStack(spacing: 6) {
                 ForEach(["Light", "Dark"], id: \.self) { Group in
                     Button(Group + " Themes") { ThemeGroup = Group }
@@ -192,8 +192,8 @@ struct WelcomeView: View {
             }.frame(maxWidth: 930)
             Toggle(isOn: $Store.Settings.ReduceMotion) {
                 VStack(alignment: .leading, spacing: 5) {
-                    Text("Reduce motion").font(.system(size: 18, weight: .semibold))
-                    Text("Use gentler transitions throughout the app.").font(.system(size: 14)).foregroundStyle(Theme.SecondaryText)
+                    Text(I18n.T("Reduce motion")).font(.system(size: 18, weight: .semibold))
+                    Text(I18n.T("Use gentler transitions throughout the app.")).font(.system(size: 14)).foregroundStyle(Theme.SecondaryText)
                 }
             }.toggleStyle(.switch).padding(18).frame(maxWidth: 930, alignment: .leading)
                 .background(Theme.Card, in: RoundedRectangle(cornerRadius: 12))
@@ -217,12 +217,12 @@ struct WelcomeView: View {
 
     private var ExtrasPage: some View {
         VStack(spacing: 28) {
-            Heading("Optional extras", Subtitle: "You can do these later too.", Symbol: "plus.circle")
+            Heading("Optional extras", Subtitle: I18n.T("You can do these later too."), Symbol: "plus.circle")
             HStack(alignment: .top, spacing: 16) {
                 FeatureCard("Import games you already have", "Find installed Steam games or choose a game file on this Mac.", "gamecontroller",
-                            ActionTitle: "Import games") { ShowingImport = true }
+                            ActionTitle: I18n.T("Import games")) { ShowingImport = true }
                 FeatureCard("Browser links", "Ascendara can open supported game links from your browser.", "puzzlepiece.extension",
-                            ActionTitle: "Read the guide ↗") { Store.OpenExternal("https://www.ascendara.app/docs") }
+                            ActionTitle: I18n.T("Read the guide ↗")) { Store.OpenExternal("https://www.ascendara.app/docs") }
             }.frame(maxWidth: 900)
             ContinueButton
         }
@@ -232,11 +232,11 @@ struct WelcomeView: View {
     private var ImportPage: some View {
         VStack(alignment: .leading, spacing: 22) {
             HStack {
-                Text("Bring in games from other launchers").font(.system(size: 27, weight: .bold))
+                Text(I18n.T("Bring in games from other launchers")).font(.system(size: 27, weight: .bold))
                 Spacer()
-                Button("Close") { ShowingImport = false }.keyboardShortcut(.cancelAction)
+                Button(I18n.T("Close")) { ShowingImport = false }.keyboardShortcut(.cancelAction)
             }
-            Text("Bring installed games into Ascendara so your games are in one place.")
+            Text(I18n.T("Bring installed games into Ascendara so your games are in one place."))
                 .foregroundStyle(Theme.SecondaryText)
             Button {
                 ShowingImport = false
@@ -256,7 +256,7 @@ struct WelcomeView: View {
             } label: {
                 ImportChoice("Import Ascendara library", "Choose a saved Ascendara library JSON file.", "books.vertical")
             }.buttonStyle(MotionButtonStyle())
-            Text("Other launcher accounts are not connected in this Mac version.")
+            Text(I18n.T("Other launcher accounts are not connected in this Mac version."))
                 .font(.system(size: 13)).foregroundStyle(Theme.SecondaryText)
         }.padding(30).frame(width: 620).background(Theme.Background)
     }
@@ -265,8 +265,8 @@ struct WelcomeView: View {
         HStack(spacing: 20) {
             Image(systemName: Symbol).font(.system(size: 30)).foregroundStyle(Theme.Accent).frame(width: 50)
             VStack(alignment: .leading, spacing: 6) {
-                Text(Title).font(.system(size: 18, weight: .semibold))
-                Text(Subtitle).font(.system(size: 14)).foregroundStyle(Theme.SecondaryText)
+                Text(I18n.T(Title)).font(.system(size: 18, weight: .semibold))
+                Text(I18n.T(Subtitle)).font(.system(size: 14)).foregroundStyle(Theme.SecondaryText)
                     .multilineTextAlignment(.leading)
             }
             Spacer()
@@ -276,7 +276,7 @@ struct WelcomeView: View {
 
     private var SummaryPage: some View {
         VStack(spacing: 22) {
-            Heading("You're all set", Subtitle: "Here's how Ascendara is set up. You can change these in Preferences.", Symbol: "paperplane")
+            Heading("You're all set", Subtitle: I18n.T("Here's how Ascendara is set up. You can change these in Preferences."), Symbol: "paperplane")
             VStack(spacing: 0) {
                 SummaryRow("Download folder", Value: Store.Settings.DownloadDirectory, Symbol: "folder")
                 Divider()
@@ -285,19 +285,19 @@ struct WelcomeView: View {
                 SummaryRow("Theme", Value: Store.Settings.Theme.capitalized, Symbol: "paintpalette")
             }.padding(.horizontal, 20).frame(maxWidth: 820)
                 .background(Theme.Card, in: RoundedRectangle(cornerRadius: 16))
-            Text("You can browse the catalogue now. Add a game whenever you're ready.")
+            Text(I18n.T("You can browse the catalogue now. Add a game whenever you're ready."))
                 .font(.system(size: 16)).foregroundStyle(Theme.SecondaryText)
-            Button("Take the Tour →") { Step = 9 }.buttonStyle(PrimaryButtonStyle())
-            Button("Skip Tour") { Store.CompleteWelcome() }.buttonStyle(.plain).foregroundStyle(Theme.Accent)
+            Button(I18n.T("Take the Tour →")) { Step = 9 }.buttonStyle(PrimaryButtonStyle())
+            Button(I18n.T("Skip Tour")) { Store.CompleteWelcome() }.buttonStyle(.plain).foregroundStyle(Theme.Accent)
         }.frame(maxWidth: 900)
     }
 
     private func SummaryRow(_ Title: String, Value: String, Symbol: String) -> some View {
         HStack(spacing: 12) {
             Image(systemName: Symbol).foregroundStyle(Theme.Accent).frame(width: 25)
-            Text(Title).font(.system(size: 17))
+            Text(I18n.T(Title)).font(.system(size: 17))
             Spacer()
-            Text(Value).font(.system(size: 16, weight: .medium)).lineLimit(1).truncationMode(.middle)
+            Text(I18n.T(Value)).font(.system(size: 16, weight: .medium)).lineLimit(1).truncationMode(.middle)
         }.padding(.vertical, 20)
     }
 
@@ -309,11 +309,11 @@ struct WelcomeView: View {
         let Symbols = ["magnifyingglass", "books.vertical", "gamecontroller"]
         return VStack(spacing: 28) {
             Heading(Titles[TourStep], Subtitle: Messages[TourStep], Symbol: Symbols[TourStep])
-            Text("\(TourStep + 1) of 3").font(.system(size: 16)).foregroundStyle(Theme.SecondaryText)
+            Text(I18n.Interpolated("\(TourStep + 1) of 3")).font(.system(size: 16)).foregroundStyle(Theme.SecondaryText)
             Button(TourStep == 2 ? "Start exploring" : "Next →") {
                 if TourStep == 2 { Store.CompleteWelcome() } else { TourStep += 1 }
             }.buttonStyle(PrimaryButtonStyle())
-            Button("Finish tour") { Store.CompleteWelcome() }.buttonStyle(.plain).foregroundStyle(Theme.Accent)
+            Button(I18n.T("Finish tour")) { Store.CompleteWelcome() }.buttonStyle(.plain).foregroundStyle(Theme.Accent)
         }.frame(maxWidth: 850)
     }
 
@@ -322,21 +322,21 @@ struct WelcomeView: View {
             Image(systemName: Symbol).font(.system(size: 30, weight: .medium))
                 .foregroundStyle(Theme.Accent).frame(width: 64, height: 64)
                 .background(Theme.Accent.opacity(0.1), in: RoundedRectangle(cornerRadius: 16))
-            Text(Title).font(.system(size: 38, weight: .bold))
+            Text(I18n.T(Title)).font(.system(size: 38, weight: .bold))
                 .foregroundStyle(Theme.Accent).multilineTextAlignment(.center)
-            Text(Subtitle).font(.system(size: 18)).foregroundStyle(Theme.SecondaryText)
+            Text(I18n.T(Subtitle)).font(.system(size: 18)).foregroundStyle(Theme.SecondaryText)
                 .multilineTextAlignment(.center).frame(maxWidth: 760)
         }
     }
 
     private var ContinueButton: some View {
-        Button("Continue →") { Step += 1 }.buttonStyle(PrimaryButtonStyle())
+        Button(I18n.T("Continue →")) { Step += 1 }.buttonStyle(PrimaryButtonStyle())
     }
 
     private var Footer: some View {
         HStack {
             if Step > 0 {
-                Button("← Back") {
+                Button(I18n.T("← Back")) {
                     if Step == 9 { Step = 8; TourStep = 0 } else { Step -= 1 }
                 }.buttonStyle(.plain).foregroundStyle(Theme.Foreground)
                     .font(.system(size: 16, weight: .medium)).disabled(CompatibilityBusy)
@@ -348,7 +348,7 @@ struct WelcomeView: View {
                         Capsule().fill(Index == Step ? Theme.Accent : Theme.Accent.opacity(0.3))
                             .frame(width: Index == Step ? 27 : 7, height: 6)
                     }
-                }.accessibilityLabel("Setup step \(Step - 1) of 7")
+                }.accessibilityLabel(I18n.Interpolated("Setup step \(Step - 1) of 7"))
             }
             Spacer()
             if Step > 0 { Color.clear.frame(width: 58, height: 1) }
@@ -359,8 +359,8 @@ struct WelcomeView: View {
                              ActionTitle: String? = nil, Action: (() -> Void)? = nil) -> some View {
         VStack(alignment: .leading, spacing: 14) {
             Image(systemName: Symbol).font(.system(size: 27)).foregroundStyle(Theme.Accent)
-            Text(Title).font(.system(size: 19, weight: .semibold))
-            Text(Subtitle).font(.system(size: 15)).foregroundStyle(Theme.SecondaryText)
+            Text(I18n.T(Title)).font(.system(size: 19, weight: .semibold))
+            Text(I18n.T(Subtitle)).font(.system(size: 15)).foregroundStyle(Theme.SecondaryText)
                 .frame(maxWidth: .infinity, alignment: .leading)
             Spacer(minLength: 0)
             if let ActionTitle, let Action {
@@ -444,8 +444,8 @@ private struct WelcomeCompatibilityCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 22) {
             VStack(alignment: .leading, spacing: 10) {
-                Text("Windows games on your Mac").font(.system(size: 22, weight: .semibold))
-                Text("Set up a compatibility runtime to play supported Windows games. Native Mac games do not need these files.")
+                Text(I18n.T("Windows games on your Mac")).font(.system(size: 22, weight: .semibold))
+                Text(I18n.T("Set up a compatibility runtime to play supported Windows games. Native Mac games do not need these files."))
                     .font(.system(size: 14)).foregroundStyle(Theme.SecondaryText).fixedSize(horizontal: false, vertical: true)
             }
             HStack(spacing: 16) {
@@ -455,7 +455,7 @@ private struct WelcomeCompatibilityCard: View {
                         .font(.system(size: 24, weight: .medium)).foregroundStyle(Theme.Accent)
                 }.frame(width: 54, height: 54)
                 VStack(alignment: .leading, spacing: 7) {
-                    Text("Game compatibility files").font(.system(size: 15, weight: .semibold))
+                    Text(I18n.T("Game compatibility files")).font(.system(size: 15, weight: .semibold))
                     HStack(spacing: 7) {
                         if BusyMessage != nil { ProgressView().controlSize(.small) }
                         else if IsConfigured { Image(systemName: "checkmark.circle.fill").foregroundStyle(.green) }
@@ -478,13 +478,13 @@ private struct WelcomeCompatibilityCard: View {
                 Feedback(Error, Symbol: "exclamationmark.triangle", Color: .orange)
             }
             HStack(spacing: 16) {
-                Button("Advanced options") { ShowingOptions = true }
+                Button(I18n.T("Advanced options")) { ShowingOptions = true }
                     .buttonStyle(MotionButtonStyle()).foregroundStyle(Theme.Accent)
-                Button("Check again") { Task { await Refresh() } }
+                Button(I18n.T("Check again")) { Task { await Refresh() } }
                     .buttonStyle(MotionButtonStyle()).foregroundStyle(Theme.SecondaryText)
                 Spacer(minLength: 0)
             }.font(.system(size: 13, weight: .medium)).disabled(BusyMessage != nil)
-            Text("You can change this later in Settings → Compatibility. Game support varies by title.")
+            Text(I18n.T("You can change this later in Settings → Compatibility. Game support varies by title."))
                 .font(.system(size: 12)).foregroundStyle(Theme.SecondaryText)
         }
         .padding(26)
@@ -501,7 +501,7 @@ private struct WelcomeCompatibilityCard: View {
     private func Feedback(_ Message: String, Symbol: String, Color: Color) -> some View {
         HStack(alignment: .top, spacing: 9) {
             Image(systemName: Symbol).foregroundStyle(Color)
-            Text(Message).foregroundStyle(Theme.SecondaryText).textSelection(.enabled)
+            Text(I18n.T(Message)).foregroundStyle(Theme.SecondaryText).textSelection(.enabled)
         }.font(.system(size: 12)).fixedSize(horizontal: false, vertical: true)
     }
 

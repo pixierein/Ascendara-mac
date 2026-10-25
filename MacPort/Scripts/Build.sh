@@ -5,6 +5,7 @@ Configuration="${1:-release}"
 case "$Configuration" in debug|release) ;; *) printf 'Use debug or release.\n' >&2; exit 1 ;; esac
 cd "$Root"
 "$Root/Scripts/SetupTools.sh"
+python3 "$Root/Scripts/BuildArchiveTool.py"
 if [[ "$Configuration" == "release" && ! -x "$Root/BuildTools/Highball/highball" ]]; then
     python3 "$Root/Scripts/BuildHighball.py"
 fi
@@ -45,7 +46,9 @@ if [[ "$Configuration" == "release" ]]; then
 fi
 mkdir -p "$App/Contents/Resources/Tools" "$App/Contents/Resources/Licenses/7zip"
 cp "$Root/BuildTools/7zip/7zz" "$App/Contents/Resources/Tools/7zz"
+cp "$Root/BuildTools/7zip/7zz-reclaim" "$App/Contents/Resources/Tools/7zz-reclaim"
 cp "$Root/BuildTools/7zip/License.txt" "$Root/BuildTools/7zip/readme.txt" "$Root/BuildTools/7zip/History.txt" "$App/Contents/Resources/Licenses/7zip/"
+cp "$Root/BuildTools/7zip/7zip-source.tar.xz" "$Root/BuildTools/7zip/ArchiveReclamation.hpp" "$Root/BuildTools/7zip/BuildArchiveTool.py" "$App/Contents/Resources/Licenses/7zip/"
 if [[ -d "$Root/BuildTools/Highball" ]]; then
     mkdir -p "$App/Contents/Resources/Highball"
     for Resource in highball engine-manifest.json d3dmetal-license.txt LICENSE SOURCE.txt; do
@@ -88,8 +91,8 @@ cat > "$App/Contents/Info.plist" <<'PLIST'
     <key>CFBundleIdentifier</key><string>app.ascendara.native</string>
     <key>CFBundleExecutable</key><string>Ascendara</string>
     <key>CFBundlePackageType</key><string>APPL</string>
-    <key>CFBundleShortVersionString</key><string>11.6.1</string>
-    <key>CFBundleVersion</key><string>2</string>
+    <key>CFBundleShortVersionString</key><string>1.1</string>
+    <key>CFBundleVersion</key><string>3</string>
     <key>CFBundleIconFile</key><string>AppIcon</string>
     <key>LSMinimumSystemVersion</key><string>14.0</string>
     <key>NSHighResolutionCapable</key><true/>
@@ -106,6 +109,7 @@ if [[ "${ASCENDARA_MAC_SIGN_IDENTITY:--}" != "-" ]]; then
     SigningArguments+=(--options runtime --timestamp)
 fi
 codesign "${SigningArguments[@]}" "$App/Contents/Resources/Tools/7zz"
+codesign "${SigningArguments[@]}" "$App/Contents/Resources/Tools/7zz-reclaim"
 for Helper in "${Helpers[@]}"; do
     codesign "${SigningArguments[@]}" "$App/Contents/MacOS/$Helper"
 done

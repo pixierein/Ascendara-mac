@@ -31,12 +31,12 @@ struct RetroView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 HStack {
-                    PageHeading(Title: "Retro", Subtitle: "Your classic games, consoles, and emulators in one place.")
+                    PageHeading(Title: I18n.T("Retro"), Subtitle: I18n.T("Your classic games, consoles, and emulators in one place."))
                     if Service.Scanning { ProgressView().controlSize(.small) }
                     Menu {
                         ForEach(Service.Platforms) { Platform in Button(Platform.Name) { Import(Platform) } }
                     } label: {
-                        Label("Add ROM folder", systemImage: "folder.badge.plus")
+                        Label(I18n.T("Add ROM folder"), systemImage: "folder.badge.plus")
                             .padding(10)
                             .background(Theme.Card, in: RoundedRectangle(cornerRadius: 8))
                             .contentShape(RoundedRectangle(cornerRadius: 8))
@@ -54,7 +54,7 @@ struct RetroView: View {
                         }.buttonStyle(MotionButtonStyle())
                     }
                     Spacer()
-                    Text("\(Service.Games.count) games · \(Service.Platforms.count) consoles").font(.caption).foregroundStyle(Theme.SecondaryText)
+                    Text(I18n.Interpolated("\(Service.Games.count) games · \(Service.Platforms.count) consoles")).font(.caption).foregroundStyle(Theme.SecondaryText)
                 }
                 if let Error = Service.ErrorMessage { Notice(Message: Error, Symbol: "exclamationmark.triangle") }
                 if Tab == "Library" { Library }
@@ -68,12 +68,12 @@ struct RetroView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 30 * Scale) {
                 HStack(alignment: .center, spacing: 24 * Scale) {
-                    TVPageHeading(Title: "Retro", Subtitle: "\(Service.Games.count) games. \(Service.Platforms.count) consoles. Your classics, together.")
+                    TVPageHeading(Title: I18n.T("Retro"), Subtitle: I18n.Interpolated("\(Service.Games.count) games. \(Service.Platforms.count) consoles. Your classics, together."))
                     Spacer(minLength: 0)
                     if Service.Scanning { ProgressView().controlSize(.large) }
                     Menu {
                         ForEach(Service.Platforms) { Platform in Button(Platform.Name) { Import(Platform) } }
-                    } label: { Label("Add ROM folder", systemImage: "folder.badge.plus") }
+                    } label: { Label(I18n.T("Add ROM folder"), systemImage: "folder.badge.plus") }
                         .menuStyle(.borderlessButton).buttonStyle(TVButtonStyle(Prominent: true)).fixedSize().disabled(Service.Scanning)
                 }
                 TVIntegrationTabs(Titles: ["Library", "Consoles", "Emulators"], Selection: $Tab)
@@ -90,17 +90,17 @@ struct RetroView: View {
     private var TVLibrary: some View {
         VStack(alignment: .leading, spacing: 28 * Scale) {
             HStack(spacing: 18 * Scale) {
-                TextField("Find a classic", text: $Query).modifier(TVIntegrationFieldStyle())
-                Picker("Console", selection: $SelectedPlatform) {
-                    Text("All consoles").tag("all")
+                TextField(I18n.T("Find a classic"), text: $Query).modifier(TVIntegrationFieldStyle())
+                Picker(I18n.T("Console"), selection: $SelectedPlatform) {
+                    Text(I18n.T("All consoles")).tag("all")
                     ForEach(Service.Platforms) { Platform in Text(Platform.Name).tag(Platform.Id) }
                 }.labelsHidden().font(.system(size: 21 * Scale)).controlSize(.large).frame(maxWidth: 300 * Scale)
-                Button { FavoritesOnly.toggle() } label: { Label("Favorites", systemImage: FavoritesOnly ? "heart.fill" : "heart") }
+                Button { FavoritesOnly.toggle() } label: { Label(I18n.T("Favorites"), systemImage: FavoritesOnly ? "heart.fill" : "heart") }
                     .buttonStyle(TVButtonStyle(Selected: FavoritesOnly))
             }
             if Games.isEmpty {
                 TVEmptyState(Symbol: "arcade.stick.console", Title: Service.Games.isEmpty ? "Bring your classics home" : "No matching games",
-                             Message: "Add a ROM folder for its console, then choose your emulator in Consoles.")
+                             Message: I18n.T("Add a ROM folder for its console, then choose your emulator in Consoles."))
             } else {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 300 * Scale, maximum: 460 * Scale), spacing: 24 * Scale)], spacing: 28 * Scale) {
                     ForEach(Games) { Game in TVGameCard(Game) }
@@ -122,28 +122,28 @@ struct RetroView: View {
                 Text(Game.Name).font(.system(size: 27 * Scale, weight: .semibold)).lineLimit(2)
                     .frame(minHeight: 66 * Scale, alignment: .topLeading)
                 if !Game.IsInstalled || !Game.MissingDependencies.isEmpty {
-                    Label("Missing game files", systemImage: "exclamationmark.triangle").foregroundStyle(.orange)
+                    Label(I18n.T("Missing game files"), systemImage: "exclamationmark.triangle").foregroundStyle(.orange)
                 } else if Game.PlayTimeSeconds > 0 {
-                    Text("\(Int(Game.PlayTimeSeconds / 60)) minutes played").foregroundStyle(TVStyle.Secondary)
-                } else { Text("Ready to play").foregroundStyle(TVStyle.Secondary) }
+                    Text(I18n.Interpolated("\(Int(Game.PlayTimeSeconds / 60)) minutes played")).foregroundStyle(TVStyle.Secondary)
+                } else { Text(I18n.T("Ready to play")).foregroundStyle(TVStyle.Secondary) }
                 HStack(spacing: 12 * Scale) {
                     if Service.RunningIds.contains(Game.Id) {
-                        Button("Stop") { Task { do { try await Service.Stop(Game) } catch { Store.Report(error) } } }
+                        Button(I18n.T("Stop")) { Task { do { try await Service.Stop(Game) } catch { Store.Report(error) } } }
                             .buttonStyle(TVButtonStyle(Prominent: true))
                     } else {
-                        Button { Launch(Game) } label: { Label("Play", systemImage: "play.fill") }
+                        Button { Launch(Game) } label: { Label(I18n.T("Play"), systemImage: "play.fill") }
                             .buttonStyle(TVButtonStyle(Prominent: true)).disabled(!Game.IsInstalled)
                     }
                     Button { Perform { try Service.ToggleFavorite(Game) } } label: { Image(systemName: Game.Favorite ? "heart.fill" : "heart") }
                         .buttonStyle(TVButtonStyle(Selected: Game.Favorite)).accessibilityLabel(Game.Favorite ? "Remove favorite" : "Add favorite")
                 }
                 Menu {
-                    ForEach(Game.FilePaths, id: \.self) { Path in Button("Play " + URL(fileURLWithPath: Path).lastPathComponent) { Launch(Game, File: Path) } }
+                    ForEach(Game.FilePaths, id: \.self) { Path in Button(I18n.T("Play ") + URL(fileURLWithPath: Path).lastPathComponent) { Launch(Game, File: Path) } }
                     Divider()
-                    Button("Console setup") { Editing = Service.Platforms.first { $0.Id == Game.PlatformId } }
-                    Button("Show in Finder") { if let Path = Game.FilePaths.first { NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: Path)]) } }
-                    Button("Remove from library") { Perform { try Service.Remove(Game) } }
-                } label: { Label("Game options", systemImage: "ellipsis") }
+                    Button(I18n.T("Console setup")) { Editing = Service.Platforms.first { $0.Id == Game.PlatformId } }
+                    Button(I18n.T("Show in Finder")) { if let Path = Game.FilePaths.first { NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: Path)]) } }
+                    Button(I18n.T("Remove from library")) { Perform { try Service.Remove(Game) } }
+                } label: { Label(I18n.T("Game options"), systemImage: "ellipsis") }
                     .menuStyle(.borderlessButton).buttonStyle(TVButtonStyle()).fixedSize()
             }.font(.system(size: 19 * Scale))
         }
@@ -157,15 +157,15 @@ struct RetroView: View {
                         HStack {
                             Image(systemName: "arcade.stick.console").font(.system(size: 38 * Scale)).foregroundStyle(TVStyle.Accent)
                             Spacer()
-                            Text("\(Service.Games.filter { $0.PlatformId == Platform.Id }.count)")
+                            Text(I18n.Interpolated("\(Service.Games.filter { $0.PlatformId == Platform.Id }.count)"))
                                 .font(.system(size: 44 * Scale, weight: .semibold, design: .rounded))
                         }
                         Text(Platform.Name).font(.system(size: 29 * Scale, weight: .semibold))
                         Text(Service.Profile(for: Platform).ExecutablePath.isEmpty ? "Choose an emulator to start playing" : URL(fileURLWithPath: Service.Profile(for: Platform).ExecutablePath).lastPathComponent)
                             .font(.system(size: 20 * Scale)).foregroundStyle(TVStyle.Secondary).lineLimit(2)
                         HStack(spacing: 14 * Scale) {
-                            Button("Console setup") { Editing = Platform }.buttonStyle(TVButtonStyle(Prominent: true))
-                            Button("Scan folder") { Import(Platform) }.buttonStyle(TVButtonStyle()).disabled(Service.Scanning)
+                            Button(I18n.T("Console setup")) { Editing = Platform }.buttonStyle(TVButtonStyle(Prominent: true))
+                            Button(I18n.T("Scan folder")) { Import(Platform) }.buttonStyle(TVButtonStyle()).disabled(Service.Scanning)
                         }
                     }
                 }
@@ -175,7 +175,7 @@ struct RetroView: View {
 
     private var TVEmulators: some View {
         VStack(alignment: .leading, spacing: 24 * Scale) {
-            Text("Use an installed macOS emulator. Set up console firmware and RetroArch cores in the emulator itself.")
+            Text(I18n.T("Use an installed macOS emulator. Set up console firmware and RetroArch cores in the emulator itself."))
                 .font(.system(size: 21 * Scale)).foregroundStyle(TVStyle.Secondary)
             ForEach(Service.Emulators) { Emulator in
                 TVPanel {
@@ -187,7 +187,7 @@ struct RetroView: View {
                                 .font(.system(size: 20 * Scale)).foregroundStyle(TVStyle.Secondary)
                         }
                         Spacer()
-                        Button("Visit website") { Store.OpenExternal(Emulator.Website) }.buttonStyle(TVButtonStyle())
+                        Button(I18n.T("Visit website")) { Store.OpenExternal(Emulator.Website) }.buttonStyle(TVButtonStyle())
                     }
                 }
             }
@@ -197,17 +197,17 @@ struct RetroView: View {
     private var Library: some View {
         VStack(alignment: .leading, spacing: 18) {
             HStack {
-                TextField("Search your retro games", text: $Query).textFieldStyle(.roundedBorder).frame(maxWidth: 340)
-                Picker("Console", selection: $SelectedPlatform) {
-                    Text("All consoles").tag("all")
+                TextField(I18n.T("Search your retro games"), text: $Query).textFieldStyle(.roundedBorder).frame(maxWidth: 340)
+                Picker(I18n.T("Console"), selection: $SelectedPlatform) {
+                    Text(I18n.T("All consoles")).tag("all")
                     ForEach(Service.Platforms) { Platform in Text(Platform.Name).tag(Platform.Id) }
                 }.frame(maxWidth: 260)
-                Toggle("Favorites", isOn: $FavoritesOnly).toggleStyle(.checkbox)
+                Toggle(I18n.T("Favorites"), isOn: $FavoritesOnly).toggleStyle(.checkbox)
                 Spacer()
             }
             if Games.isEmpty {
                 EmptyPanel(Symbol: "gamecontroller", Title: Service.Games.isEmpty ? "Your retro library starts here" : "No matching games",
-                           Message: "Choose Add ROM folder, select its console, and scan your local games. Configure an installed emulator in Consoles.")
+                           Message: I18n.T("Choose Add ROM folder, select its console, and scan your local games. Configure an installed emulator in Consoles."))
             } else {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 245), spacing: 18)], spacing: 18) {
                     ForEach(Games) { Game in GameCard(Game) }
@@ -230,25 +230,25 @@ struct RetroView: View {
             Text(Service.Platforms.first(where: { $0.Id == Game.PlatformId })?.Name ?? Game.PlatformId).font(.caption).foregroundStyle(Theme.SecondaryText)
             HStack {
                 if Service.RunningIds.contains(Game.Id) {
-                    Button("Stop") { Task { do { try await Service.Stop(Game) } catch { Store.Report(error) } } }.buttonStyle(PrimaryButtonStyle())
+                    Button(I18n.T("Stop")) { Task { do { try await Service.Stop(Game) } catch { Store.Report(error) } } }.buttonStyle(PrimaryButtonStyle())
                 } else {
-                    Button { Launch(Game) } label: { Label("Play", systemImage: "play.fill") }.buttonStyle(PrimaryButtonStyle()).disabled(!Game.IsInstalled)
+                    Button { Launch(Game) } label: { Label(I18n.T("Play"), systemImage: "play.fill") }.buttonStyle(PrimaryButtonStyle()).disabled(!Game.IsInstalled)
                 }
                 Spacer()
                 Menu {
-                    ForEach(Game.FilePaths, id: \.self) { Path in Button("Play " + URL(fileURLWithPath: Path).lastPathComponent) { Launch(Game, File: Path) } }
+                    ForEach(Game.FilePaths, id: \.self) { Path in Button(I18n.T("Play ") + URL(fileURLWithPath: Path).lastPathComponent) { Launch(Game, File: Path) } }
                     Divider()
-                    Button("Console setup") { Editing = Service.Platforms.first { $0.Id == Game.PlatformId } }
-                    Button("Show in Finder") { if let Path = Game.FilePaths.first { NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: Path)]) } }
-                    Button("Remove from library") { Perform { try Service.Remove(Game) } }
+                    Button(I18n.T("Console setup")) { Editing = Service.Platforms.first { $0.Id == Game.PlatformId } }
+                    Button(I18n.T("Show in Finder")) { if let Path = Game.FilePaths.first { NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: Path)]) } }
+                    Button(I18n.T("Remove from library")) { Perform { try Service.Remove(Game) } }
                 } label: {
                     Image(systemName: "ellipsis")
                         .frame(width: 30, height: 30)
                         .contentShape(Rectangle())
                 }.menuStyle(.borderlessButton).fixedSize()
             }
-            if !Game.IsInstalled || !Game.MissingDependencies.isEmpty { Text("Missing game files").font(.caption).foregroundStyle(.orange) }
-            else if Game.PlayTimeSeconds > 0 { Text("\(Int(Game.PlayTimeSeconds / 60)) minutes played").font(.caption).foregroundStyle(Theme.SecondaryText) }
+            if !Game.IsInstalled || !Game.MissingDependencies.isEmpty { Text(I18n.T("Missing game files")).font(.caption).foregroundStyle(.orange) }
+            else if Game.PlayTimeSeconds > 0 { Text(I18n.Interpolated("\(Int(Game.PlayTimeSeconds / 60)) minutes played")).font(.caption).foregroundStyle(Theme.SecondaryText) }
         }.padding(15).background(Theme.Card, in: RoundedRectangle(cornerRadius: 13))
     }
 
@@ -258,12 +258,12 @@ struct RetroView: View {
                 Panel(Padding: 18) {
                     VStack(alignment: .leading, spacing: 14) {
                         Label(Platform.Name, systemImage: "gamecontroller").font(.headline)
-                        Text("\(Service.Games.filter { $0.PlatformId == Platform.Id }.count) games").font(.caption).foregroundStyle(Theme.SecondaryText)
+                        Text(I18n.Interpolated("\(Service.Games.filter { $0.PlatformId == Platform.Id }.count) games")).font(.caption).foregroundStyle(Theme.SecondaryText)
                         Text(Service.Profile(for: Platform).ExecutablePath.isEmpty ? "Choose an emulator to start playing" : URL(fileURLWithPath: Service.Profile(for: Platform).ExecutablePath).lastPathComponent)
                             .font(.caption).foregroundStyle(Theme.SecondaryText).lineLimit(1)
                         HStack {
-                            Button("Set up") { Editing = Platform }.buttonStyle(SecondaryButtonStyle())
-                            Button("Scan folder") { Import(Platform) }.buttonStyle(SecondaryButtonStyle()).disabled(Service.Scanning)
+                            Button(I18n.T("Set up")) { Editing = Platform }.buttonStyle(SecondaryButtonStyle())
+                            Button(I18n.T("Scan folder")) { Import(Platform) }.buttonStyle(SecondaryButtonStyle()).disabled(Service.Scanning)
                         }
                     }
                 }
@@ -273,7 +273,7 @@ struct RetroView: View {
 
     private var Emulators: some View {
         VStack(alignment: .leading, spacing: 15) {
-            Notice(Message: "Use an installed macOS emulator, or select Custom for an alternative. Console firmware and RetroArch cores are configured in their emulator.")
+            Notice(Message: I18n.T("Use an installed macOS emulator, or select Custom for an alternative. Console firmware and RetroArch cores are configured in their emulator."))
             ForEach(Service.Emulators) { Emulator in
                 Panel(Padding: 16) {
                     HStack {
@@ -282,7 +282,7 @@ struct RetroView: View {
                             Text(Service.Platforms.filter { Emulator.Platforms.contains($0.Id) }.map(\.Name).joined(separator: ", ")).font(.caption).foregroundStyle(Theme.SecondaryText)
                         }
                         Spacer()
-                        Button("Website") { Store.OpenExternal(Emulator.Website) }.buttonStyle(SecondaryButtonStyle())
+                        Button(I18n.T("Website")) { Store.OpenExternal(Emulator.Website) }.buttonStyle(SecondaryButtonStyle())
                     }
                 }
             }
@@ -290,7 +290,7 @@ struct RetroView: View {
     }
 
     private func Import(_ Platform: RetroPlatform) {
-        guard let Folder = Store.ChooseFolder(Title: "Choose your \(Platform.Name) ROM folder") else { return }
+        guard let Folder = Store.ChooseFolder(Title: I18n.Interpolated("Choose your \(Platform.Name) ROM folder")) else { return }
         Task {
             do {
                 let Count = try await Service.Scan(Platform: Platform, Folder: Folder)
@@ -316,6 +316,7 @@ struct RetroSetupView: View {
     let Platform: RetroPlatform
     @State private var Profile: RetroProfile
     @State private var Arguments: String
+    @StateObject private var Installer = EmulatorInstaller()
 
     init(Service: RetroService, Platform: RetroPlatform) {
         self.Service = Service
@@ -329,34 +330,38 @@ struct RetroSetupView: View {
         Group {
             if IsTV { TVBody } else { DesktopBody }
         }
+        .onAppear {
+            if Profile.ExecutablePath.isEmpty, let App = Installer.FindInstalled(Profile.Adapter) { Profile.ExecutablePath = App.path }
+        }
     }
 
     private var TVBody: some View {
         VStack(alignment: .leading, spacing: 24 * Scale) {
-            TVPageHeading(Title: Platform.Name, Subtitle: "Choose how your classics play.")
+            TVPageHeading(Title: Platform.Name, Subtitle: I18n.T("Choose how your classics play."))
             ScrollView {
                 VStack(alignment: .leading, spacing: 24 * Scale) {
                     TVPanel {
                         VStack(alignment: .leading, spacing: 22 * Scale) {
-                            Picker("Emulator", selection: $Profile.Adapter) {
+                            Picker(I18n.T("Emulator"), selection: $Profile.Adapter) {
                                 ForEach(Service.Emulators.filter { $0.Platforms.contains(Platform.Id) }) { Emulator in Text(Emulator.Name).tag(Emulator.Id) }
-                                Text("Custom").tag("custom")
+                                Text(I18n.T("Custom")).tag("custom")
                             }.controlSize(.large)
-                            Text("Emulator app or executable").fontWeight(.medium)
+                            Text(I18n.T("Emulator app or executable")).fontWeight(.medium)
+                            AutomaticSetup
                             HStack(spacing: 16 * Scale) {
-                                TextField("Choose an emulator", text: $Profile.ExecutablePath).modifier(TVIntegrationFieldStyle())
-                                Button("Choose…") { ChooseExecutable() }.buttonStyle(TVButtonStyle())
+                                TextField(I18n.T("Choose an emulator"), text: $Profile.ExecutablePath).modifier(TVIntegrationFieldStyle())
+                                Button(I18n.T("Choose…")) { ChooseExecutable() }.buttonStyle(TVButtonStyle())
                             }
                             if Profile.Adapter == "retroarch" {
-                                Text("RetroArch core").fontWeight(.medium)
+                                Text(I18n.T("RetroArch core")).fontWeight(.medium)
                                 HStack(spacing: 16 * Scale) {
-                                    TextField("Core path", text: $Profile.CorePath).modifier(TVIntegrationFieldStyle())
-                                    Button("Choose…") { ChooseCore() }.buttonStyle(TVButtonStyle())
+                                    TextField(I18n.T("Core path"), text: $Profile.CorePath).modifier(TVIntegrationFieldStyle())
+                                    Button(I18n.T("Choose…")) { ChooseCore() }.buttonStyle(TVButtonStyle())
                                 }
                             }
-                            Toggle("Launch fullscreen", isOn: $Profile.Fullscreen).toggleStyle(.switch).controlSize(.large)
+                            Toggle(I18n.T("Launch fullscreen"), isOn: $Profile.Fullscreen).toggleStyle(.switch).controlSize(.large)
                             if Profile.Adapter == "custom" {
-                                Text("One argument per line. Use {rom} for the game file.").foregroundStyle(TVStyle.Secondary)
+                                Text(I18n.T("One argument per line. Use {rom} for the game file.")).foregroundStyle(TVStyle.Secondary)
                                 TextEditor(text: $Arguments).font(.system(size: 20 * Scale, design: .monospaced))
                                     .scrollContentBackground(.hidden).frame(height: 140 * Scale)
                                     .padding(16 * Scale).background(.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 12 * Scale))
@@ -366,7 +371,7 @@ struct RetroSetupView: View {
                     if !Profile.Folders.isEmpty {
                         TVPanel {
                             VStack(alignment: .leading, spacing: 14 * Scale) {
-                                Text("ROM folders").font(.system(size: 26 * Scale, weight: .semibold))
+                                Text(I18n.T("ROM folders")).font(.system(size: 26 * Scale, weight: .semibold))
                                 ForEach(Profile.Folders, id: \.self) { Folder in
                                     Text(Folder).foregroundStyle(TVStyle.Secondary).textSelection(.enabled)
                                 }
@@ -377,8 +382,8 @@ struct RetroSetupView: View {
             }
             HStack(spacing: 18 * Scale) {
                 Spacer()
-                Button("Cancel") { Dismiss() }.buttonStyle(TVButtonStyle()).keyboardShortcut(.cancelAction)
-                Button("Save console") { Save() }.buttonStyle(TVButtonStyle(Prominent: true))
+                Button(I18n.T("Cancel")) { Dismiss() }.buttonStyle(TVButtonStyle()).keyboardShortcut(.cancelAction)
+                Button(I18n.T("Save console")) { Save() }.buttonStyle(TVButtonStyle(Prominent: true))
             }
         }.font(.system(size: 21 * Scale)).padding(32 * Scale)
             .frame(width: 900 * Scale, height: 720 * Scale).background(TVStyle.Background)
@@ -386,38 +391,59 @@ struct RetroSetupView: View {
 
     private var DesktopBody: some View {
         VStack(alignment: .leading, spacing: 20) {
-            SectionHeading(Title: Platform.Name, Subtitle: "Console setup", Symbol: "gamecontroller")
+            SectionHeading(Title: Platform.Name, Subtitle: I18n.T("Console setup"), Symbol: "gamecontroller")
             Form {
-                Picker("Emulator preset", selection: $Profile.Adapter) {
+                Picker(I18n.T("Emulator preset"), selection: $Profile.Adapter) {
                     ForEach(Service.Emulators.filter { $0.Platforms.contains(Platform.Id) }) { Emulator in Text(Emulator.Name).tag(Emulator.Id) }
-                    Text("Custom").tag("custom")
+                    Text(I18n.T("Custom")).tag("custom")
                 }
                 HStack {
-                    TextField("Emulator app or executable", text: $Profile.ExecutablePath)
-                    Button("Choose…") { ChooseExecutable() }
+                    TextField(I18n.T("Emulator app or executable"), text: $Profile.ExecutablePath)
+                    Button(I18n.T("Choose…")) { ChooseExecutable() }
                 }
+                AutomaticSetup
                 if Profile.Adapter == "retroarch" {
                     HStack {
-                        TextField("RetroArch core path", text: $Profile.CorePath)
-                        Button("Choose…") { ChooseCore() }
+                        TextField(I18n.T("RetroArch core path"), text: $Profile.CorePath)
+                        Button(I18n.T("Choose…")) { ChooseCore() }
                     }
                 }
-                Toggle("Launch fullscreen", isOn: $Profile.Fullscreen)
+                Toggle(I18n.T("Launch fullscreen"), isOn: $Profile.Fullscreen)
                 if Profile.Adapter == "custom" {
-                    Text("One argument per line. Use {rom} where the game file belongs.").font(.caption).foregroundStyle(Theme.SecondaryText)
+                    Text(I18n.T("One argument per line. Use {rom} where the game file belongs.")).font(.caption).foregroundStyle(Theme.SecondaryText)
                     TextEditor(text: $Arguments).font(.system(.body, design: .monospaced)).frame(height: 110).border(Theme.Border)
                 }
             }.formStyle(.grouped)
             if !Profile.Folders.isEmpty {
-                Text("ROM folders").font(.headline)
+                Text(I18n.T("ROM folders")).font(.headline)
                 ForEach(Profile.Folders, id: \.self) { Folder in Text(Folder).font(.caption).textSelection(.enabled).foregroundStyle(Theme.SecondaryText) }
             }
             HStack {
                 Spacer()
-                Button("Cancel") { Dismiss() }.buttonStyle(SecondaryButtonStyle()).keyboardShortcut(.cancelAction)
-                Button("Save") { Save() }.buttonStyle(PrimaryButtonStyle())
+                Button(I18n.T("Cancel")) { Dismiss() }.buttonStyle(SecondaryButtonStyle()).keyboardShortcut(.cancelAction)
+                Button(I18n.T("Save")) { Save() }.buttonStyle(PrimaryButtonStyle())
             }
         }.padding(28).frame(width: 620).background(Theme.Background)
+    }
+
+    private var AutomaticSetup: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if EmulatorInstaller.Supports(Profile.Adapter) {
+                Button(I18n.T(Installer.Installing ? "Installing…" : "Set up emulator automatically")) {
+                    let Adapter = Profile.Adapter
+                    Task {
+                        do {
+                            let Result = try await Installer.Install(Adapter: Adapter, Platform: Platform.Id)
+                            guard Profile.Adapter == Adapter else { return }
+                            Profile.ExecutablePath = Result.App.path
+                            if let Core = Result.Core { Profile.CorePath = Core.path }
+                            try Service.SaveProfile(Profile)
+                        } catch { Store.Report(error) }
+                    }
+                }.disabled(Installer.Installing)
+                if !Installer.Status.isEmpty { Text(I18n.T(Installer.Status)).font(.caption).foregroundStyle(Theme.SecondaryText) }
+            }
+        }
     }
 
     private func Save() {

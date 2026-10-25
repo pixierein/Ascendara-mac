@@ -193,6 +193,7 @@ final class RetroService: ObservableObject {
         case "duckstation", "pcsx2": return ["-batch"] + (Profile.Fullscreen ? ["-fullscreen"] : []) + ["--", File]
         case "rpcs3": return ["--no-gui", File]
         case "ppsspp": return (Profile.Fullscreen ? ["--fullscreen"] : []) + [File]
+        case "melonds": return (Profile.Fullscreen ? ["-f"] : []) + [File]
         case "dolphin": return ["--batch"] + (Profile.Fullscreen ? ["--config", "Dolphin.Display.Fullscreen=True"] : []) + ["--exec", File]
         case "retroarch":
             guard !Profile.CorePath.isEmpty, FileManager.default.fileExists(atPath: Profile.CorePath) else { throw RuntimeError.Message("Select an installed RetroArch core for this console first.") }
@@ -317,7 +318,8 @@ final class RetroService: ObservableObject {
         .init(Id: "n64", Name: "Nintendo 64", Adapter: "retroarch", Extensions: ["z64", "n64", "v64", "zip", "7z"]),
         .init(Id: "gb", Name: "Game Boy", Adapter: "retroarch", Extensions: ["gb", "zip", "7z"]),
         .init(Id: "gbc", Name: "Game Boy Color", Adapter: "retroarch", Extensions: ["gbc", "zip", "7z"]),
-        .init(Id: "gba", Name: "Game Boy Advance", Adapter: "retroarch", Extensions: ["gba", "zip", "7z"])
+        .init(Id: "gba", Name: "Game Boy Advance", Adapter: "retroarch", Extensions: ["gba", "zip", "7z"]),
+        .init(Id: "nds", Name: "Nintendo DS", Adapter: "melonds", Extensions: ["nds", "srl", "dsi"])
     ]
 
     private static let BaseEmulators: [RetroEmulatorPreset] = [
@@ -325,6 +327,7 @@ final class RetroService: ObservableObject {
         .init(Id: "pcsx2", Name: "PCSX2", Platforms: ["ps2"], Website: "https://pcsx2.net/", Arguments: nil, FullscreenArguments: nil),
         .init(Id: "rpcs3", Name: "RPCS3", Platforms: ["ps3"], Website: "https://rpcs3.net/", Arguments: nil, FullscreenArguments: nil),
         .init(Id: "ppsspp", Name: "PPSSPP", Platforms: ["psp"], Website: "https://www.ppsspp.org/", Arguments: nil, FullscreenArguments: nil),
+        .init(Id: "melonds", Name: "melonDS", Platforms: ["nds"], Website: "https://melonds.kuribo64.net/", Arguments: nil, FullscreenArguments: nil),
         .init(Id: "dolphin", Name: "Dolphin", Platforms: ["gamecube", "wii"], Website: "https://dolphin-emu.org/", Arguments: nil, FullscreenArguments: nil),
         .init(Id: "retroarch", Name: "RetroArch", Platforms: ["nes", "snes", "n64", "gb", "gbc", "gba", "ps1", "psp", "genesis", "saturn", "pcengine", "dreamcast", "nds"], Website: "https://www.retroarch.com/", Arguments: nil, FullscreenArguments: nil)
     ]

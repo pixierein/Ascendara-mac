@@ -2,6 +2,7 @@ import Foundation
 import Combine
 import AppKit
 import Darwin
+import AscendaraCore
 
 @MainActor
 final class LibraryService: ObservableObject {
@@ -12,7 +13,29 @@ final class LibraryService: ObservableObject {
 
     init(StorageDirectory: URL = RuntimePaths.Support) {
         self.StorageDirectory = StorageDirectory
-        do { try Load() } catch { ErrorMessage = error.localizedDescription }
+        do { try Load(); try RecoverInstallations() } catch { ErrorMessage = error.localizedDescription }
+    }
+
+    private struct InstallationJournal: Codable {
+        let Game: LibraryGame
+        let Staged: URL
+        let Destination: URL
+        let Previous: URL
+    }
+
+    private var TransactionsDirectory: URL { StorageDirectory.appendingPathComponent("InstallTransactions", isDirectory: true) }
+
+    private func RecoverInstallations() throws {
+        guard let Files = try? FileManager.default.contentsOfDirectory(at: TransactionsDirectory, includingPropertiesForKeys: nil) else { return }
+        for File in Files where File.pathExtension == "json" {
+            let Journal = try AppPaths.Read(InstallationJournal.self, From: File)
+            if !FileManager.default.fileExists(atPath: Journal.Staged.path), FileManager.default.fileExists(atPath: Journal.Destination.path) {
+                if Games.contains(where: { $0.Id == Journal.Game.Id }) { try Update(Journal.Game) }
+            } else if !FileManager.default.fileExists(atPath: Journal.Destination.path), FileManager.default.fileExists(atPath: Journal.Previous.path) {
+                try FileManager.default.moveItem(at: Journal.Previous, to: Journal.Destination)
+            }
+            try FileManager.default.removeItem(at: File)
+        }
     }
 
     func Load() throws {
@@ -58,6 +81,7 @@ final class LibraryService: ObservableObject {
             Game.IsManaged = true
         }
         try Save(Games + [Game])
+        Task { try? await MeasureSize(Game.Id) }
         return Game
     }
 
@@ -66,6 +90,118 @@ final class LibraryService: ObservableObject {
         var Updated = Games
         Updated[Index] = Game
         try Save(Updated)
+    }
+
+    func MeasureSize(_ Id: UUID) async throws {
+        guard let Game = Games.first(where: { $0.Id == Id }) else { return }
+        let Root = Game.ManagedFilesPath.map { URL(fileURLWithPath: $0) }
+            ?? URL(fileURLWithPath: LibraryDiskSpace.GamePath(Executable: Game.ExecutablePath, Directory: Game.DirectoryPath))
+        let Bytes = try await Task.detached(priority: .utility) { try StorageBudget.Measure(Root) }.value
+        guard var Current = Games.first(where: { $0.Id == Id }), Current.ExecutablePath == Game.ExecutablePath else { return }
+        Current.InstalledSizeBytes = Bytes
+        Current.SizeMeasuredAt = Date()
+        try Update(Current)
+    }
+
+    func ReplaceInstallation(_ Plan: InstallationPlan, From Staged: URL, Executable: URL, Version: String?) throws -> LibraryGame {
+        guard var Game = Games.first(where: { $0.Id == Plan.ReplaceGameId }), RuntimePaths.IsInside(Executable, Staged) else {
+            throw RuntimeError.Message("The game or its new executable is no longer available.")
+        }
+        let Destination = URL(fileURLWithPath: Plan.DestinationPath).standardizedFileURL
+        guard Destination.pathComponents.count > 3, !RuntimePaths.IsInside(Destination, Staged),
+              !RuntimePaths.IsInside(Staged, Destination) else { throw RuntimeError.Message("Choose a separate installation folder.") }
+        let PreviousRoot = Game.ManagedFilesPath.map { URL(fileURLWithPath: $0).standardizedFileURL }
+        let Existing = FileManager.default.fileExists(atPath: Destination.path)
+        guard !Existing || (Game.IsManaged && PreviousRoot == Destination) else {
+            throw RuntimeError.Message("The chosen installation folder already contains other files. Choose an empty folder name.")
+        }
+        if let PreviousRoot, PreviousRoot != Destination,
+           RuntimePaths.IsInside(Destination, PreviousRoot) || RuntimePaths.IsInside(PreviousRoot, Destination) {
+            throw RuntimeError.Message("The old and new installation folders cannot contain one another.")
+        }
+        guard !Games.contains(where: { $0.Id != Game.Id && RuntimePaths.IsInside($0.ExecutableURL, Destination) }) else {
+            throw RuntimeError.Message("Another game uses the selected installation folder.")
+        }
+        let Relative = String(Executable.path.dropFirst(Staged.path.count + 1))
+        let NewExecutable = Destination.appendingPathComponent(Relative)
+        let OldAchievements = Game.ExecutableURL.deletingLastPathComponent().appendingPathComponent("achievements.ascendara.json")
+        let NewAchievements = Executable.deletingLastPathComponent().appendingPathComponent("achievements.ascendara.json")
+        if FileManager.default.fileExists(atPath: NewAchievements.path) { try FileManager.default.removeItem(at: NewAchievements) }
+        if Plan.KeepAchievements, FileManager.default.fileExists(atPath: OldAchievements.path) {
+            try FileManager.default.copyItem(at: OldAchievements, to: NewAchievements)
+        }
+        let Rollback = Destination.deletingLastPathComponent().appendingPathComponent(".ascendara-previous-" + UUID().uuidString)
+        try RuntimePaths.CreateDirectory(Destination.deletingLastPathComponent())
+        Game.ExecutablePath = NewExecutable.path
+        Game.DirectoryPath = NewExecutable.deletingLastPathComponent().path
+        Game.ManagedFilesPath = Destination.path
+        Game.IsManaged = true
+        Game.Version = Version
+        Game.InstalledSizeBytes = nil
+        Game.SizeMeasuredAt = nil
+        if !Plan.KeepPlaytime {
+            Game.PlayTimeSeconds = 0; Game.LaunchCount = 0; Game.LastPlayedAt = nil
+            Game.LastSession = nil; Game.LastSessionId = nil; Game.LastSessionRecordedSeconds = 0
+            Game.RecordedSessionSecondsById = [:]
+        }
+        let JournalURL = TransactionsDirectory.appendingPathComponent(UUID().uuidString + ".json")
+        try AppPaths.Write(InstallationJournal(Game: Game, Staged: Staged, Destination: Destination, Previous: Rollback), To: JournalURL)
+        do {
+            if Existing { try FileManager.default.moveItem(at: Destination, to: Rollback) }
+            try FileManager.default.moveItem(at: Staged, to: Destination)
+            try Update(Game)
+        } catch {
+            if !FileManager.default.fileExists(atPath: Staged.path), FileManager.default.fileExists(atPath: Destination.path) {
+                try? FileManager.default.moveItem(at: Destination, to: Staged)
+            }
+            if Existing, FileManager.default.fileExists(atPath: Rollback.path) {
+                try? FileManager.default.moveItem(at: Rollback, to: Destination)
+            }
+            if FileManager.default.fileExists(atPath: Staged.path), (!Existing || FileManager.default.fileExists(atPath: Destination.path)) {
+                try? FileManager.default.removeItem(at: JournalURL)
+            }
+            throw error
+        }
+        try? FileManager.default.removeItem(at: JournalURL)
+        if Existing { try? FileManager.default.trashItem(at: Rollback, resultingItemURL: nil) }
+        Task { try? await MeasureSize(Game.Id) }
+        return Game
+    }
+
+    func MoveInstallation(_ Id: UUID, To Destination: URL) async throws {
+        guard var Game = Games.first(where: { $0.Id == Id }), Game.IsManaged, let Path = Game.ManagedFilesPath else {
+            throw RuntimeError.Message("Only installations managed by Ascendara can be moved here.")
+        }
+        let Source = URL(fileURLWithPath: Path).standardizedFileURL
+        let Destination = Destination.standardizedFileURL
+        guard !FileManager.default.fileExists(atPath: Destination.path),
+              !RuntimePaths.IsInside(Destination, Source), !RuntimePaths.IsInside(Source, Destination), Source != Destination,
+              RuntimePaths.IsInside(Game.ExecutableURL, Source) else { throw RuntimeError.Message("Choose a new, separate installation folder.") }
+        let OriginalExecutable = Game.ExecutablePath
+        let Relative = String(OriginalExecutable.dropFirst(Source.path.count + 1))
+        let Bytes = try await Task.detached(priority: .utility) { try StorageBudget.Measure(Source) }.value
+        try StorageBudget.Check(at: Destination.deletingLastPathComponent(), Remaining: Bytes)
+        let Staging = Destination.deletingLastPathComponent().appendingPathComponent(".ascendara-move-" + UUID().uuidString)
+        var Moved = false
+        do {
+            try await Task.detached(priority: .utility) { try FileManager.default.copyItem(at: Source, to: Staging) }.value
+            guard let Current = Games.first(where: { $0.Id == Id }), Current.ExecutablePath == OriginalExecutable else {
+                throw RuntimeError.Message("This game changed while its files were being moved.")
+            }
+            try FileManager.default.moveItem(at: Staging, to: Destination)
+            Moved = true
+            Game = Current
+            Game.ExecutablePath = Destination.appendingPathComponent(Relative).path
+            Game.DirectoryPath = URL(fileURLWithPath: Game.ExecutablePath).deletingLastPathComponent().path
+            Game.ManagedFilesPath = Destination.path
+            Game.InstalledSizeBytes = Bytes; Game.SizeMeasuredAt = Date()
+            try Update(Game)
+        } catch {
+            try? FileManager.default.removeItem(at: Staging)
+            if Moved { try? FileManager.default.removeItem(at: Destination) }
+            throw error
+        }
+        try FileManager.default.trashItem(at: Source, resultingItemURL: nil)
     }
 
     @discardableResult
@@ -134,8 +270,6 @@ final class LibraryService: ObservableObject {
         try Update(Game)
     }
 
-    /// Replayable progress from the detached GameHandler. The session ID and
-    /// cumulative seconds make app relaunches and repeated status polls safe.
     func RecordManagedSession(_ Id: UUID, SessionId: UUID, StartedAt: Date,
                               TotalSeconds: Int, Summary: GameSession?) throws {
         guard var Game = Games.first(where: { $0.Id == Id }) else { return }
@@ -320,7 +454,9 @@ struct LibraryDiskSpace: Sendable {
     }
 
     static func GamePath(Executable: String, Directory: String) -> String {
-        var Parent = URL(fileURLWithPath: Executable).deletingLastPathComponent()
+        let ExecutableURL = URL(fileURLWithPath: Executable)
+        if ExecutableURL.pathExtension.lowercased() == "app" { return ExecutableURL.path }
+        var Parent = ExecutableURL.deletingLastPathComponent()
         while Parent.path != "/" {
             if Parent.pathExtension.lowercased() == "app" { return Parent.path }
             Parent.deleteLastPathComponent()
@@ -362,29 +498,13 @@ enum LibraryUpdateService {
             return LibraryUpdateResult(Status: .Unknown, LatestGame: Match, LatestVersion: Match.Version,
                                        Message: "Enter the version shown by your installed game to compare it with the catalogue.")
         }
-        if Match.CustomSource != nil {
-            guard let LatestVersion = Match.Version?.trimmingCharacters(in: .whitespacesAndNewlines), !LatestVersion.isEmpty else {
-                return LibraryUpdateResult(Status: .Unavailable, LatestGame: Match,
-                                           Message: "This catalogue does not include a version for this game.")
-            }
-            let Same = Normalize(Version) == Normalize(LatestVersion)
-            return LibraryUpdateResult(Status: Same ? .Current : .Different, LatestGame: Match, LatestVersion: Match.Version,
-                                       Message: "Compared with your custom catalogue. Check the source before installing another version.")
+        guard let LatestVersion = Match.Version?.trimmingCharacters(in: .whitespacesAndNewlines), !LatestVersion.isEmpty else {
+            return LibraryUpdateResult(Status: .Unavailable, LatestGame: Match, Message: "The active index does not publish a version for this game.")
         }
-        do {
-            guard let Update = try await Catalog.CheckUpdate(GameId: Match.Id, Version: Version) else {
-                return LibraryUpdateResult(Status: .NoMatch, LatestGame: Match, LatestVersion: Match.Version,
-                                           Message: "The community update service does not list this game.")
-            }
-            guard Update.Id == Match.Id else { throw AppFailure.Message("The update server returned a different game's information.") }
-            var Latest = Match
-            Latest.Version = Update.LatestVersion
-            if !Update.DownloadLinks.isEmpty { Latest.DownloadLinks = Update.DownloadLinks }
-            return LibraryUpdateResult(Status: Update.UpdateAvailable ? .Available : .Current, LatestGame: Latest, LatestVersion: Update.LatestVersion)
-        } catch {
-            if error is CancellationError || (error as? URLError)?.code == .cancelled { throw error }
-            return LibraryUpdateResult(Status: .Failed, LatestGame: Match, LatestVersion: Match.Version, Message: error.localizedDescription)
-        }
+        let Status: LibraryUpdateStatus = Normalize(Version) == Normalize(LatestVersion) ? .Current
+            : VersionComparison.IsNewer(LatestVersion, than: Version) ? .Available : .Different
+        return LibraryUpdateResult(Status: Status, LatestGame: Match, LatestVersion: LatestVersion,
+            Message: Status == .Different ? "The index version differs, but cannot be confirmed as newer. Review it before reinstalling." : "Compared with the active game index.")
     }
 
     static func Normalize(_ Version: String) -> String {

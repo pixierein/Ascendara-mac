@@ -48,7 +48,6 @@ struct DownloadsView: View {
             } else if Reported > 0 {
                 Rate = Reported
             } else if let ProgressAt = LastProgressAt[Item.Id], Now.timeIntervalSince(ProgressAt) < 1.5 {
-                // Worker status can briefly report zero between two progress writes.
                 Rate = LastDownloadRates[Item.Id] ?? 0
             } else {
                 Rate = 0
@@ -98,22 +97,23 @@ struct DownloadsView: View {
                 if !NoticeDismissed { DownloadNotice }
                 SpeedPanel
                 HStack {
-                    PageHeading(Title: "Downloads", Subtitle: "Manage your transfers and queue.")
+                    PageHeading(Title: I18n.T("Downloads"), Subtitle: I18n.T("Manage your transfers and queue."))
                     Spacer()
                     Button { Store.ChooseDownloadDirectory() } label: {
-                        Label("Download folder", systemImage: "folder")
+                        Label(I18n.T("Download folder"), systemImage: "folder")
                     }.buttonStyle(SecondaryButtonStyle())
                 }
                 HStack {
-                    Picker("Downloads", selection: $Filter) {
-                        ForEach(["All", "Active", "Paused", "Completed"], id: \.self) { Value in Text(Value).tag(Value) }
+                    Picker(I18n.T("Downloads"), selection: $Filter) {
+                        ForEach(["All", "Active", "Paused", "Completed"], id: \.self) { Value in Text(I18n.T(Value)).tag(Value) }
                     }.pickerStyle(.segmented).labelsHidden().frame(width: 380)
                     Spacer()
-                    Text("\(Filtered.count + FilteredTorrents.count) of \(Store.Downloads.count + Store.TorrentJobs.count) downloads")
+                    Text(I18n.Interpolated("\(Filtered.count + FilteredTorrents.count) of \(Store.Downloads.count + Store.TorrentJobs.count) downloads"))
                         .font(.system(size: 12)).foregroundStyle(Theme.SecondaryText)
                 }
+                DownloadQueueControls(Service: Store.DownloadStore).environmentObject(Store)
                 if Filtered.isEmpty && FilteredTorrents.isEmpty {
-                    EmptyPanel(Symbol: "arrow.down.circle", Title: Filter == "All" ? "Nothing downloading yet" : "No \(Filter.lowercased()) downloads", Message: "Choose a game and a download provider to add it to the queue.", ActionTitle: "Browse games") {
+                    EmptyPanel(Symbol: "arrow.down.circle", Title: Filter == "All" ? "Nothing downloading yet" : "No \(Filter.lowercased()) downloads", Message: I18n.T("Choose a game and a download provider to add it to the queue."), ActionTitle: I18n.T("Browse games")) {
                         Store.CurrentRoute = .Search
                     }
                 } else {
@@ -141,12 +141,12 @@ struct DownloadsView: View {
         HStack(alignment: .top, spacing: 14) {
             Image(systemName: "info.circle").font(.system(size: 18)).foregroundStyle(Theme.Accent)
             VStack(alignment: .leading, spacing: 5) {
-                Text("Downloading on Ascendara").font(.system(size: 14, weight: .semibold))
-                Text("Downloads continue in the background after you close Ascendara. You can pause or stop a transfer from its card at any time.")
+                Text(I18n.T("Downloading on Ascendara")).font(.system(size: 14, weight: .semibold))
+                Text(I18n.T("Downloads continue in the background after you close Ascendara. You can pause or stop a transfer from its card at any time."))
                     .font(.system(size: 13)).foregroundStyle(Theme.SecondaryText)
             }
             Spacer(minLength: 12)
-            Button("I understand") { NoticeDismissed = true }
+            Button(I18n.T("I understand")) { NoticeDismissed = true }
                 .buttonStyle(.plain).foregroundStyle(Theme.Accent)
         }
         .padding(20)
@@ -158,7 +158,7 @@ struct DownloadsView: View {
         VStack(alignment: .leading, spacing: 18) {
             HStack(alignment: .bottom) {
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("CURRENT TOTAL SPEED").font(.system(size: 11, weight: .semibold)).tracking(1.4).foregroundStyle(Theme.SecondaryText)
+                    Text(I18n.T("CURRENT TOTAL SPEED")).font(.system(size: 11, weight: .semibold)).tracking(1.4).foregroundStyle(Theme.SecondaryText)
                     HStack(alignment: .firstTextBaseline, spacing: 8) {
                         Text(SpeedValue(CurrentSpeed)).font(.system(size: 46, weight: .bold)).monospacedDigit()
                         Text(SpeedUnit(CurrentSpeed)).font(.system(size: 18, weight: .medium)).foregroundStyle(Theme.SecondaryText)
@@ -180,8 +180,8 @@ struct DownloadsView: View {
 
     private func Metric(_ Title: String, Value: String) -> some View {
         VStack(alignment: .trailing, spacing: 5) {
-            Text(Title).font(.system(size: 12)).foregroundStyle(Theme.SecondaryText)
-            Text(Value).font(.system(size: 16, weight: .semibold)).monospacedDigit()
+            Text(I18n.T(Title)).font(.system(size: 12)).foregroundStyle(Theme.SecondaryText)
+            Text(I18n.T(Value)).font(.system(size: 16, weight: .semibold)).monospacedDigit()
         }.frame(minWidth: 75, alignment: .trailing)
     }
 
@@ -246,7 +246,7 @@ private struct SpeedChart: View {
             let Marker = CGRect(x: Last.x - 5.5, y: Last.y - 5.5, width: 11, height: 11)
             Context.fill(Path(ellipseIn: Marker), with: .color(Theme.Card))
             Context.stroke(Path(ellipseIn: Marker), with: .color(Theme.Accent), lineWidth: 3)
-        }.accessibilityLabel("Download speed history")
+        }.accessibilityLabel(I18n.T("Download speed history"))
     }
 
     private func Points(in Plot: CGRect, ceiling: Double, at Now: Date) -> [CGPoint] {
@@ -301,7 +301,7 @@ struct DownloadRow: View {
                         HStack(spacing: 8) {
                             Circle().fill(StatusColor).frame(width: 7, height: 7)
                             Text(Item.State.rawValue)
-                            Text("·")
+                            Text(I18n.T("·"))
                             Text(Item.TotalBytes > 0 ? Bytes(Item.TotalBytes) : Item.FileName).lineLimit(1)
                         }.font(.system(size: 12)).foregroundStyle(Theme.SecondaryText)
                     }
@@ -311,8 +311,8 @@ struct DownloadRow: View {
                 Spacer(minLength: 0)
                 HStack(alignment: .firstTextBaseline) {
                     if Item.TotalBytes > 0 {
-                        Text("\(Int(Item.Progress * 100))").font(.system(size: 28, weight: .semibold)).monospacedDigit()
-                        Text("%").font(.system(size: 13)).foregroundStyle(Theme.SecondaryText)
+                        Text(I18n.Interpolated("\(Int(Item.Progress * 100))")).font(.system(size: 28, weight: .semibold)).monospacedDigit()
+                        Text(I18n.T("%")).font(.system(size: 13)).foregroundStyle(Theme.SecondaryText)
                     } else {
                         Text(Bytes(Item.ReceivedBytes)).font(.system(size: 22, weight: .semibold)).monospacedDigit()
                     }
@@ -321,7 +321,7 @@ struct DownloadRow: View {
                         Text(Bytes(Int64(Item.BytesPerSecond)) + "/s")
                         Text(ETA).padding(.leading, 12)
                     } else if Item.State == .Paused, Item.ReceivedBytes > 0 {
-                        Text("\(Bytes(Item.ReceivedBytes)) downloaded")
+                        Text(I18n.Interpolated("\(Bytes(Item.ReceivedBytes)) downloaded"))
                     }
                 }.font(.system(size: 13)).foregroundStyle(Theme.SecondaryText).monospacedDigit()
                 if Item.TotalBytes > 0 {
@@ -343,26 +343,30 @@ struct DownloadRow: View {
         HStack(spacing: 8) {
             switch Item.State {
             case .Downloading:
-                IconButton(Symbol: "pause", Help: "Pause download") { Store.PauseDownload(Item) }
+                IconButton(Symbol: "pause", Help: I18n.T("Pause download")) { Store.PauseDownload(Item) }
                 FolderButton
-                IconButton(Symbol: "xmark", Help: "Cancel download") { Store.CancelDownload(Item) }
+                IconButton(Symbol: "xmark", Help: I18n.T("Cancel download")) { Store.CancelDownload(Item) }
             case .Queued:
+                Button(I18n.T("Move to front")) { do { try Store.DownloadStore.Prioritize(Item.Id) } catch { Store.Report(error) } }
                 FolderButton
-                IconButton(Symbol: "xmark", Help: "Cancel download") { Store.CancelDownload(Item) }
+                IconButton(Symbol: "xmark", Help: I18n.T("Cancel download")) { Store.CancelDownload(Item) }
             case .Paused, .Failed:
-                IconButton(Symbol: "play", Help: "Resume download") { Store.ResumeDownload(Item) }
+                IconButton(Symbol: "play", Help: I18n.T("Resume download")) { Store.ResumeDownload(Item) }
                 FolderButton
-                IconButton(Symbol: "xmark", Help: "Cancel download") { Store.CancelDownload(Item) }
+                IconButton(Symbol: "xmark", Help: I18n.T("Cancel download")) { Store.CancelDownload(Item) }
             case .Cancelled:
-                IconButton(Symbol: "trash", Help: "Remove from downloads") { Store.RemoveDownload(Item) }
+                IconButton(Symbol: "trash", Help: I18n.T("Remove from downloads")) { Store.RemoveDownload(Item) }
             case .Completed:
-                Button("Extract") { Store.ExtractDownload(Item) }.buttonStyle(SecondaryButtonStyle())
+                Button(I18n.T("Extract")) { Store.ExtractDownload(Item) }.buttonStyle(SecondaryButtonStyle())
                 FolderButton
-                IconButton(Symbol: "trash", Help: "Remove from downloads") { Store.RemoveDownload(Item) }
+                IconButton(Symbol: "trash", Help: I18n.T("Remove from downloads")) { Store.RemoveDownload(Item) }
             case .Extracted:
-                Button("Add to library") { Store.ImportDownload(Item) }.buttonStyle(SecondaryButtonStyle())
+                if Item.Installation != nil {
+                    Button(I18n.T("Finish installation")) { Store.FinishInstallation(Item) }.buttonStyle(PrimaryButtonStyle())
+                }
+                Button(I18n.T("Add to library")) { Store.ImportDownload(Item) }.buttonStyle(SecondaryButtonStyle())
                 FolderButton
-                IconButton(Symbol: "trash", Help: "Remove from downloads") { Store.RemoveDownload(Item) }
+                IconButton(Symbol: "trash", Help: I18n.T("Remove from downloads")) { Store.RemoveDownload(Item) }
             case .Extracting:
                 ProgressView().controlSize(.small)
             }
@@ -370,7 +374,7 @@ struct DownloadRow: View {
     }
 
     private var FolderButton: some View {
-        IconButton(Symbol: "folder", Help: "Show download folder") { Store.RevealDownload(Item) }
+        IconButton(Symbol: "folder", Help: I18n.T("Show download folder")) { Store.RevealDownload(Item) }
     }
 
     private var ETA: String {
@@ -411,8 +415,8 @@ private struct TorrentJobRow: View {
                         HStack(spacing: 8) {
                             Circle().fill(Job.State == "Failed" ? .red : Job.IsTerminal ? .green : Theme.Accent).frame(width: 7, height: 7)
                             Text(Job.State == "ManualInstallRequired" ? "Installer required" : Job.State)
-                            Text("·")
-                            Text("Torrent")
+                            Text(I18n.T("·"))
+                            Text(I18n.T("Torrent"))
                         }.font(.system(size: 12)).foregroundStyle(Theme.SecondaryText)
                     }
                     Spacer()
@@ -420,19 +424,19 @@ private struct TorrentJobRow: View {
                 }
                 Spacer(minLength: 0)
                 HStack(alignment: .firstTextBaseline) {
-                    Text("\(Int(Job.Progress * 100))").font(.system(size: 28, weight: .semibold)).monospacedDigit()
-                    Text("%").font(.system(size: 13)).foregroundStyle(Theme.SecondaryText)
+                    Text(I18n.Interpolated("\(Int(Job.Progress * 100))")).font(.system(size: 28, weight: .semibold)).monospacedDigit()
+                    Text(I18n.T("%")).font(.system(size: 13)).foregroundStyle(Theme.SecondaryText)
                     Spacer()
                     if Job.State == "Downloading" {
                         Text(ByteCountFormatter.string(fromByteCount: max(0, Job.Speed), countStyle: .file) + "/s")
-                        if Job.ETA > 0 { Text("ETA \(Job.ETA / 60)m \(Job.ETA % 60)s").padding(.leading, 12) }
+                        if Job.ETA > 0 { Text(I18n.Interpolated("ETA \(Job.ETA / 60)m \(Job.ETA % 60)s")).padding(.leading, 12) }
                     }
                 }.font(.system(size: 13)).foregroundStyle(Theme.SecondaryText).monospacedDigit()
                 ProgressView(value: Job.Progress).tint(Theme.Accent)
                     .animation(MotionEnabled ? .linear(duration: 0.45) : nil, value: Job.Progress)
-                if let Message = Job.ErrorMessage { Text(Message).font(.system(size: 11)).foregroundStyle(.red) }
+                if let Message = Job.ErrorMessage { Text(I18n.T(Message)).font(.system(size: 11)).foregroundStyle(.red) }
                 if let Installer = Job.ManualInstaller {
-                    Text("Run the installer manually: \(URL(fileURLWithPath: Installer).lastPathComponent)")
+                    Text(I18n.Interpolated("Run the installer manually: \(URL(fileURLWithPath: Installer).lastPathComponent)"))
                         .font(.system(size: 11)).foregroundStyle(Theme.SecondaryText)
                 }
             }.padding(23)
@@ -446,22 +450,22 @@ private struct TorrentJobRow: View {
         HStack(spacing: 8) {
             switch Job.State {
             case "Paused":
-                IconButton(Symbol: "play", Help: "Resume torrent") { Store.ControlTorrent(Job, Operation: "resume") }
-                IconButton(Symbol: "folder", Help: "Show download folder") { Store.RevealTorrent(Job) }
-                IconButton(Symbol: "xmark", Help: "Cancel torrent") { Store.ControlTorrent(Job, Operation: "cancel") }
+                IconButton(Symbol: "play", Help: I18n.T("Resume torrent")) { Store.ControlTorrent(Job, Operation: "resume") }
+                IconButton(Symbol: "folder", Help: I18n.T("Show download folder")) { Store.RevealTorrent(Job) }
+                IconButton(Symbol: "xmark", Help: I18n.T("Cancel torrent")) { Store.ControlTorrent(Job, Operation: "cancel") }
             case "Completed", "ManualInstallRequired":
                 Button(Job.State == "Completed" ? "Add to library" : "Open folder") {
                     if Job.State == "Completed" { Store.ImportTorrent(Job) } else { Store.RevealTorrent(Job) }
                 }.buttonStyle(SecondaryButtonStyle())
-                IconButton(Symbol: "folder", Help: "Show download folder") { Store.RevealTorrent(Job) }
-                IconButton(Symbol: "trash", Help: "Remove torrent from history") { Store.ControlTorrent(Job, Operation: "remove") }
+                IconButton(Symbol: "folder", Help: I18n.T("Show download folder")) { Store.RevealTorrent(Job) }
+                IconButton(Symbol: "trash", Help: I18n.T("Remove torrent from history")) { Store.ControlTorrent(Job, Operation: "remove") }
             case "Failed", "Cancelled":
-                IconButton(Symbol: "folder", Help: "Show download folder") { Store.RevealTorrent(Job) }
-                IconButton(Symbol: "trash", Help: "Remove torrent from history") { Store.ControlTorrent(Job, Operation: "remove") }
+                IconButton(Symbol: "folder", Help: I18n.T("Show download folder")) { Store.RevealTorrent(Job) }
+                IconButton(Symbol: "trash", Help: I18n.T("Remove torrent from history")) { Store.ControlTorrent(Job, Operation: "remove") }
             default:
-                IconButton(Symbol: "pause", Help: "Pause torrent") { Store.ControlTorrent(Job, Operation: "pause") }
-                IconButton(Symbol: "folder", Help: "Show download folder") { Store.RevealTorrent(Job) }
-                IconButton(Symbol: "xmark", Help: "Cancel torrent") { Store.ControlTorrent(Job, Operation: "cancel") }
+                IconButton(Symbol: "pause", Help: I18n.T("Pause torrent")) { Store.ControlTorrent(Job, Operation: "pause") }
+                IconButton(Symbol: "folder", Help: I18n.T("Show download folder")) { Store.RevealTorrent(Job) }
+                IconButton(Symbol: "xmark", Help: I18n.T("Cancel torrent")) { Store.ControlTorrent(Job, Operation: "cancel") }
             }
         }
     }

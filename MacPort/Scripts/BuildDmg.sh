@@ -31,7 +31,7 @@ if [[ ! -d "$App" ]]; then
 fi
 codesign --verify --deep --strict "$App"
 if [[ "$Notarize" == "1" ]]; then
-    Executables=("$App" "$App/Contents/Resources/Tools/7zz")
+    Executables=("$App" "$App/Contents/Resources/Tools/7zz" "$App/Contents/Resources/Tools/7zz-reclaim")
     if [[ -f "$App/Contents/Resources/Highball/highball" ]]; then
         Executables+=("$App/Contents/Resources/Highball/highball")
     fi

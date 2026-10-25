@@ -17,23 +17,23 @@ struct HomeView: View {
                     if Store.Games.isEmpty {
                         CatalogEmptyView()
                     } else {
-                        GameRow(Title: "Top Games", Subtitle: "", Symbol: "arrow.up.right", Games: Home.Top, TotalCount: Store.Games.count, CardWidth: CardWidth) {
+                        GameRow(Title: I18n.T("Top Games"), Subtitle: I18n.T(""), Symbol: "arrow.up.right", Games: Home.Top, TotalCount: Store.Games.count, CardWidth: CardWidth) {
                             OpenSearch()
                         }
-                        GameRow(Title: "Most Recently Updated", Subtitle: "", Symbol: "arrow.triangle.2.circlepath", Games: Home.Updated, TotalCount: Home.UpdatedCount, CardWidth: CardWidth) {
+                        GameRow(Title: I18n.T("Most Recently Updated"), Subtitle: I18n.T(""), Symbol: "arrow.triangle.2.circlepath", Games: Home.Updated, TotalCount: Home.UpdatedCount, CardWidth: CardWidth) {
                             OpenSearch(Sort: "Recently updated")
                         }
-                        GameRow(Title: "Online Games", Subtitle: "", Symbol: "globe", Games: Home.Online, TotalCount: Home.OnlineCount, CardWidth: CardWidth) {
+                        GameRow(Title: I18n.T("Online Games"), Subtitle: I18n.T(""), Symbol: "globe", Games: Home.Online, TotalCount: Home.OnlineCount, CardWidth: CardWidth) {
                             OpenSearch(Online: true)
                         }
-                        GameRow(Title: "Action Games", Subtitle: "", Symbol: "bolt", Games: Home.Action, TotalCount: Home.ActionCount, CardWidth: CardWidth) {
+                        GameRow(Title: I18n.T("Action Games"), Subtitle: I18n.T(""), Symbol: "bolt", Games: Home.Action, TotalCount: Home.ActionCount, CardWidth: CardWidth) {
                             OpenSearch(Genre: Home.Categories.first { $0.Name.caseInsensitiveCompare("Action") == .orderedSame }?.Name ?? "Action")
                         }
                         if !Home.Categories.isEmpty {
                             VStack(alignment: .leading, spacing: 26) {
                                 HStack(spacing: 14) {
                                     HeadingIcon("flame")
-                                    Text("Popular Categories").font(.system(size: 23, weight: .bold))
+                                    Text(I18n.T("Popular Categories")).font(.system(size: 23, weight: .bold))
                                 }
                                 LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 22), count: 3), spacing: 22) {
                                     ForEach(Home.Categories, id: \.Name) { Category in CategoryCard(Category) }
@@ -59,8 +59,8 @@ struct HomeView: View {
                             .foregroundStyle(Theme.Accent).frame(width: 48, height: 48)
                             .background(Theme.Accent.opacity(0.08), in: RoundedRectangle(cornerRadius: 14))
                         VStack(alignment: .leading, spacing: 7) {
-                            Text("Search for games...").font(.system(size: 18, weight: .medium))
-                            Text("Press to start searching").font(.system(size: 12)).foregroundStyle(Theme.SecondaryText.opacity(0.65))
+                            Text(I18n.T("Search for games...")).font(.system(size: 18, weight: .medium))
+                            Text(I18n.T("Press to start searching")).font(.system(size: 12)).foregroundStyle(Theme.SecondaryText.opacity(0.65))
                         }
                         Spacer(minLength: 0)
                     }.padding(.horizontal, 20).frame(maxWidth: .infinity).frame(height: 86)
@@ -83,7 +83,7 @@ struct HomeView: View {
                 Image(systemName: Symbol).font(.system(size: 18))
                     .foregroundStyle(Theme.Accent).frame(width: 36, height: 36)
                     .background(Theme.Accent.opacity(0.08), in: RoundedRectangle(cornerRadius: 11))
-                Text(Title).font(.system(size: 12, weight: .medium))
+                Text(I18n.T(Title)).font(.system(size: 12, weight: .medium))
             }.frame(width: 78, height: 86)
                 .background(Theme.Card.opacity(0.65), in: RoundedRectangle(cornerRadius: 14))
                 .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.Border.opacity(0.45), lineWidth: 2))
@@ -103,11 +103,11 @@ struct HomeView: View {
                     HeadingIcon("gamecontroller")
                     VStack(alignment: .leading, spacing: 5) {
                         Text(Category.Name).font(.system(size: 18, weight: .semibold))
-                        Text("\(Category.Count) games").font(.system(size: 12)).foregroundStyle(Theme.SecondaryText)
+                        Text(I18n.Interpolated("\(Category.Count) games")).font(.system(size: 12)).foregroundStyle(Theme.SecondaryText)
                     }
                     Spacer(minLength: 0)
                 }.frame(maxWidth: .infinity, alignment: .leading)
-            }.buttonStyle(MotionButtonStyle()).help("Browse \(Category.Name) games")
+            }.buttonStyle(MotionButtonStyle()).help(I18n.Interpolated("Browse \(Category.Name) games"))
             LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
                 ForEach(Category.Preview) { Game in
                     Button { Store.OpenGame(Game) } label: {
@@ -133,17 +133,17 @@ struct HomeView: View {
             Image(systemName: "point.3.connected.trianglepath.dotted").font(.system(size: 28, weight: .medium))
                 .foregroundStyle(Theme.Accent).frame(width: 66, height: 66)
                 .background(Theme.Accent.opacity(0.12), in: RoundedRectangle(cornerRadius: 20))
-            Text("Consider Spreading the Word").font(.system(size: 23, weight: .semibold))
-            Text("Sharing Ascendara with others helps the project grow and reach more players.")
+            Text(I18n.T("Consider Spreading the Word")).font(.system(size: 23, weight: .semibold))
+            Text(I18n.T("Sharing Ascendara with others helps the project grow and reach more players."))
                 .font(.system(size: 15)).foregroundStyle(Theme.SecondaryText)
                 .multilineTextAlignment(.center).lineSpacing(5).frame(maxWidth: 820)
             HStack(spacing: 36) {
-                Button { Store.OpenExternal("https://www.ascendara.app/support") } label: { Label("Support Development", systemImage: "heart") }
-                Button { Store.OpenExternal("https://github.com/pixierein/ascendara") } label: { Label("View on GitHub", systemImage: "arrow.up.right.square") }
+                Button { Store.OpenExternal("https://www.ascendara.app/support") } label: { Label(I18n.T("Support Development"), systemImage: "heart") }
+                Button { Store.OpenExternal("https://github.com/pixierein/ascendara") } label: { Label(I18n.T("View on GitHub"), systemImage: "arrow.up.right.square") }
             }.buttonStyle(MotionButtonStyle()).font(.system(size: 15, weight: .medium)).padding(.vertical, 12)
             VStack(spacing: 8) {
-                Text("Made with <3 by Santiago & Contributors")
-                Text("macOS port by Aether")
+                Text(I18n.T("Made with <3 by Santiago & Contributors"))
+                Text(I18n.T("macOS port by Aether"))
             }.font(.system(size: 12)).foregroundStyle(Theme.SecondaryText.opacity(0.65))
         }.frame(maxWidth: .infinity).padding(.bottom, 24)
     }
@@ -183,7 +183,7 @@ struct HomeFeaturedSection: View {
                 VStack(alignment: .leading, spacing: 16) {
                     Spacer()
                     if Featured.Online {
-                        Label("Online", systemImage: "globe")
+                        Label(I18n.T("Online"), systemImage: "globe")
                             .font(.system(size: 12, weight: .semibold))
                             .padding(.horizontal, 10).padding(.vertical, 6)
                             .background(.black.opacity(0.55), in: Capsule())
@@ -199,7 +199,7 @@ struct HomeFeaturedSection: View {
                     }
                     HStack(alignment: .bottom) {
                         Button { Store.OpenGame(Featured) } label: {
-                            Text("View Game").font(.system(size: 14, weight: .semibold))
+                            Text(I18n.T("View Game")).font(.system(size: 14, weight: .semibold))
                                 .frame(minWidth: 130).padding(.vertical, 11)
                         }.buttonStyle(PrimaryButtonStyle())
                         Spacer()
@@ -223,32 +223,32 @@ struct HomeFeaturedSection: View {
             Button { Move(-1) } label: {
                 Image(systemName: "chevron.left").frame(width: 34, height: 34)
                     .background(.black.opacity(0.58), in: Circle())
-            }.accessibilityLabel("Previous highlighted game")
+            }.accessibilityLabel(I18n.T("Previous highlighted game"))
             ForEach(Array(Games.enumerated()), id: \.element.Id) { Index, Game in
                 Button { Slide = Index } label: {
                     Capsule().fill(Slide == Index ? Theme.Accent : .white.opacity(0.56))
                         .frame(width: Slide == Index ? 24 : 6, height: 6)
                         .frame(minWidth: Slide == Index ? 24 : 15, minHeight: 34)
-                }.accessibilityLabel("Show \(Game.Name)")
+                }.accessibilityLabel(I18n.Interpolated("Show \(Game.Name)"))
                     .accessibilityAddTraits(Slide == Index ? .isSelected : [])
             }
             Button { Move(1) } label: {
                 Image(systemName: "chevron.right").frame(width: 34, height: 34)
                     .background(.black.opacity(0.58), in: Circle())
-            }.accessibilityLabel("Next highlighted game")
+            }.accessibilityLabel(I18n.T("Next highlighted game"))
         }.buttonStyle(MotionButtonStyle())
     }
 
     private var RecentPanel: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Label("Recent Games", systemImage: "play")
+            Label(I18n.T("Recent Games"), systemImage: "play")
                 .font(.system(size: 18, weight: .semibold)).foregroundStyle(Theme.Foreground)
             if Recent.isEmpty {
                 VStack(spacing: 9) {
                     Spacer()
                     Image(systemName: "play").font(.system(size: 28, weight: .light))
-                    Text("Your top 3 recent games show here").font(.system(size: 13, weight: .medium))
-                    Text("Start playing to see your games").font(.system(size: 12)).opacity(0.65)
+                    Text(I18n.T("Your top 3 recent games show here")).font(.system(size: 13, weight: .medium))
+                    Text(I18n.T("Start playing to see your games")).font(.system(size: 12)).opacity(0.65)
                     Spacer()
                 }.frame(maxWidth: .infinity)
                     .foregroundStyle(Theme.SecondaryText)
@@ -264,7 +264,7 @@ struct HomeFeaturedSection: View {
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text(Game.Name).font(.system(size: 12, weight: .semibold)).lineLimit(1)
                                     if let LastPlayed = Game.LastPlayedAt {
-                                        Text("Played \(LastPlayed.formatted(.relative(presentation: .named)))")
+                                        Text(I18n.Interpolated("Played \(LastPlayed.formatted(.relative(presentation: .named)))"))
                                             .font(.system(size: 11)).foregroundStyle(Theme.SecondaryText)
                                     }
                                 }
@@ -274,7 +274,7 @@ struct HomeFeaturedSection: View {
                         }.buttonStyle(MotionButtonStyle())
                     }
                     Spacer(minLength: 0)
-                    Button { Store.CurrentRoute = .Library } label: { Label("Open Library", systemImage: "books.vertical") }
+                    Button { Store.CurrentRoute = .Library } label: { Label(I18n.T("Open Library"), systemImage: "books.vertical") }
                         .buttonStyle(MotionButtonStyle()).font(.system(size: 12, weight: .medium))
                 }.padding(13).frame(maxWidth: .infinity, maxHeight: .infinity)
                     .background(Theme.Card.opacity(0.4), in: RoundedRectangle(cornerRadius: 17))
@@ -322,17 +322,17 @@ struct GameRow: View {
                         .frame(width: 42, height: 42).background(Theme.Accent.opacity(0.09), in: RoundedRectangle(cornerRadius: 12))
                     Button { if let Action { Action() } else { Store.CurrentRoute = .Search } } label: {
                         VStack(alignment: .leading, spacing: 5) {
-                            Text(Title).font(.system(size: 22, weight: .bold))
-                            if !Subtitle.isEmpty { Text(Subtitle).font(.system(size: 12)).foregroundStyle(Theme.SecondaryText) }
+                            Text(I18n.T(Title)).font(.system(size: 22, weight: .bold))
+                            if !Subtitle.isEmpty { Text(I18n.T(Subtitle)).font(.system(size: 12)).foregroundStyle(Theme.SecondaryText) }
                         }
                     }.buttonStyle(MotionButtonStyle())
                     Text(Count).font(.system(size: 12, weight: .medium)).padding(.horizontal, 9).padding(.vertical, 4)
                         .background(Theme.Accent.opacity(0.1), in: Capsule())
                     Spacer()
                     Button { Move(-3) } label: { Image(systemName: "chevron.left").frame(width: 30, height: 36) }
-                        .disabled(Index == 0).accessibilityLabel("Previous \(Title)")
+                        .disabled(Index == 0).accessibilityLabel(I18n.Interpolated("Previous \(Title)"))
                     Button { Move(3) } label: { Image(systemName: "chevron.right").frame(width: 30, height: 36) }
-                        .disabled(Games.count <= 3 || Index >= max(1, Games.count - 4)).accessibilityLabel("Next \(Title)")
+                        .disabled(Games.count <= 3 || Index >= max(1, Games.count - 4)).accessibilityLabel(I18n.Interpolated("Next \(Title)"))
                 }.buttonStyle(MotionButtonStyle())
                 ScrollView(.horizontal, showsIndicators: false) {
                     LazyHStack(spacing: 18) {
@@ -371,7 +371,7 @@ struct GameRow: View {
         }
         .buttonStyle(MotionButtonStyle()).help(Game.Name).accessibilityLabel(Game.Name)
         .contextMenu {
-            Button("View game") { Store.OpenGame(Game) }
+            Button(I18n.T("View game")) { Store.OpenGame(Game) }
             Button(Store.Wishlist.contains(Game.Id) ? "Remove from Play Later" : "Add to Play Later") { Store.ToggleWishlist(Game) }
         }
     }
@@ -402,7 +402,7 @@ struct HomeGameCard: View {
             }.frame(width: 280, height: 157.5).clipShape(RoundedRectangle(cornerRadius: 12))
                 .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.Border.opacity(0.3), lineWidth: 1))
         }.buttonStyle(MotionButtonStyle()).contextMenu {
-            Button("View game") { Store.OpenGame(Game) }
+            Button(I18n.T("View game")) { Store.OpenGame(Game) }
             Button(Store.Wishlist.contains(Game.Id) ? "Remove from Play Later" : "Add to Play Later") { Store.ToggleWishlist(Game) }
         }
     }
@@ -414,15 +414,15 @@ struct CatalogEmptyView: View {
         VStack(spacing: 20) {
             if Store.IsLoading {
                 ProgressView().controlSize(.large).tint(Theme.Accent)
-                Text("Loading your game index…").font(.system(size: 18, weight: .medium))
-                Text("Your library is available while the index loads.").foregroundStyle(Theme.SecondaryText)
+                Text(I18n.T("Loading your game index…")).font(.system(size: 18, weight: .medium))
+                Text(I18n.T("Your library is available while the index loads.")).foregroundStyle(Theme.SecondaryText)
             } else {
-                EmptyPanel(Symbol: "square.stack.3d.up", Title: "Your next game is waiting", Message: Store.CatalogWarning ?? "Load the Ascendara index or import your own source to start browsing.", ActionTitle: "Refresh game index", Action: { Store.RefreshCatalog() })
+                EmptyPanel(Symbol: "square.stack.3d.up", Title: I18n.T("Your next game is waiting"), Message: Store.CatalogWarning ?? "Load the Ascendara index or import your own source to start browsing.", ActionTitle: I18n.T("Refresh game index"), Action: { Store.RefreshCatalog() })
                 HStack {
-                    Button("Manage sources") { Store.CurrentRoute = .Sources }.buttonStyle(SecondaryButtonStyle())
-                    Button("Use bundled Ascendara index") { Store.UseBundledCatalog() }.buttonStyle(SecondaryButtonStyle())
-                    Button("Import index…") { Store.ImportCatalog() }.buttonStyle(SecondaryButtonStyle())
-                    Button("Open library") { Store.CurrentRoute = .Library }.buttonStyle(SecondaryButtonStyle())
+                    Button(I18n.T("Manage sources")) { Store.CurrentRoute = .Sources }.buttonStyle(SecondaryButtonStyle())
+                    Button(I18n.T("Use bundled Ascendara index")) { Store.UseBundledCatalog() }.buttonStyle(SecondaryButtonStyle())
+                    Button(I18n.T("Import index…")) { Store.ImportCatalog() }.buttonStyle(SecondaryButtonStyle())
+                    Button(I18n.T("Open library")) { Store.CurrentRoute = .Library }.buttonStyle(SecondaryButtonStyle())
                 }
             }
         }.frame(maxWidth: .infinity).padding(.vertical, 60)
@@ -440,18 +440,18 @@ struct SearchView: View {
                 VStack(alignment: .leading, spacing: 22) {
                     if Store.ShowingBigPicture {
                         HStack {
-                            PageHeading(Title: "Search", Subtitle: "Find something worth playing.")
-                            IconButton(Symbol: "arrow.clockwise", Help: "Refresh game index", Action: { Store.RefreshCatalog() })
+                            PageHeading(Title: I18n.T("Search"), Subtitle: I18n.T("Find something worth playing."))
+                            IconButton(Symbol: "arrow.clockwise", Help: I18n.T("Refresh game index"), Action: { Store.RefreshCatalog() })
                         }
-                        SearchField(Text: $Store.SearchQuery, Placeholder: "Search \(Store.Games.count.formatted()) games…")
+                        SearchField(Text: $Store.SearchQuery, Placeholder: I18n.Interpolated("Search \(Store.Games.count.formatted()) games…"))
                         VStack(spacing: 18) {
                             HStack(spacing: 20) {
                                 GenrePicker.frame(maxWidth: .infinity)
                                 SortPicker.frame(maxWidth: .infinity)
                             }
                             HStack(spacing: 22) {
-                                Toggle("Online", isOn: $Store.OnlineOnly).toggleStyle(.checkbox)
-                                Toggle("Includes DLC", isOn: $Store.DlcOnly).toggleStyle(.checkbox)
+                                Toggle(I18n.T("Online"), isOn: $Store.OnlineOnly).toggleStyle(.checkbox)
+                                Toggle(I18n.T("Includes DLC"), isOn: $Store.DlcOnly).toggleStyle(.checkbox)
                                 FilterButton
                                 Spacer(minLength: 0)
                                 ResultCount
@@ -459,15 +459,15 @@ struct SearchView: View {
                         }
                     } else {
                         HStack(spacing: 8) {
-                            Text("\(Store.Games.count.formatted()) Games Indexed")
+                            Text(I18n.Interpolated("\(Store.Games.count.formatted()) Games Indexed"))
                                 .font(.system(size: 15, weight: .medium))
                             Image(systemName: "info.circle")
-                                .help("Games in your currently selected catalogue")
+                                .help(I18n.T("Games in your currently selected catalogue"))
                             Spacer()
-                            IconButton(Symbol: "arrow.clockwise", Help: "Refresh game index", Action: { Store.RefreshCatalog() })
+                            IconButton(Symbol: "arrow.clockwise", Help: I18n.T("Refresh game index"), Action: { Store.RefreshCatalog() })
                         }.foregroundStyle(Theme.SecondaryText)
                         HStack(spacing: 16) {
-                            SearchField(Text: $Store.SearchQuery, Placeholder: "Search games…")
+                            SearchField(Text: $Store.SearchQuery, Placeholder: I18n.T("Search games…"))
                             FilterButton
                         }
                     }
@@ -477,11 +477,11 @@ struct SearchView: View {
                                 VStack(spacing: 20) {
                                     HStack(spacing: 24) {
                                         ProviderPicker.frame(maxWidth: .infinity)
-                                        Toggle("Verified games", isOn: $Store.VerifiedOnly).toggleStyle(.checkbox)
+                                        Toggle(I18n.T("Verified games"), isOn: $Store.VerifiedOnly).toggleStyle(.checkbox)
                                     }
                                     HStack(spacing: 24) {
                                         SizeFilter
-                                        Button("Reset filters") { ResetFilters() }.buttonStyle(SecondaryButtonStyle())
+                                        Button(I18n.T("Reset filters")) { ResetFilters() }.buttonStyle(SecondaryButtonStyle())
                                     }
                                 }
                             } else {
@@ -492,12 +492,12 @@ struct SearchView: View {
                                         ProviderPicker.frame(maxWidth: .infinity)
                                     }
                                     HStack(spacing: 18) {
-                                        Toggle("Online", isOn: $Store.OnlineOnly).toggleStyle(.checkbox)
-                                        Toggle("Includes DLC", isOn: $Store.DlcOnly).toggleStyle(.checkbox)
-                                        Toggle("Verified", isOn: $Store.VerifiedOnly).toggleStyle(.checkbox)
+                                        Toggle(I18n.T("Online"), isOn: $Store.OnlineOnly).toggleStyle(.checkbox)
+                                        Toggle(I18n.T("Includes DLC"), isOn: $Store.DlcOnly).toggleStyle(.checkbox)
+                                        Toggle(I18n.T("Verified"), isOn: $Store.VerifiedOnly).toggleStyle(.checkbox)
                                         SizeFilter.frame(maxWidth: 210)
                                         Spacer(minLength: 0)
-                                        Button("Reset") { ResetFilters() }.buttonStyle(MotionButtonStyle()).foregroundStyle(Theme.Accent)
+                                        Button(I18n.T("Reset")) { ResetFilters() }.buttonStyle(MotionButtonStyle()).foregroundStyle(Theme.Accent)
                                     }
                                 }
                             }
@@ -507,7 +507,7 @@ struct SearchView: View {
                     if let Warning = Store.CatalogWarning { Notice(Message: Warning) }
                     if Store.Games.isEmpty { CatalogEmptyView() }
                     else if Results.isEmpty {
-                        EmptyPanel(Symbol: "magnifyingglass", Title: "No games found", Message: "Try another title or clear your filters.", ActionTitle: "Clear filters") {
+                        EmptyPanel(Symbol: "magnifyingglass", Title: I18n.T("No games found"), Message: I18n.T("Try another title or clear your filters."), ActionTitle: I18n.T("Clear filters")) {
                             Store.SearchQuery = ""; ResetFilters()
                         }
                     } else if Store.ShowingBigPicture {
@@ -518,7 +518,7 @@ struct SearchView: View {
                         DesktopSearchResults(Games: Array(Results.prefix(VisibleCount)), Width: min(1440, max(0, Geometry.size.width - 60)))
                     }
                     if Results.count > VisibleCount {
-                        Button("Load more games") { VisibleCount += 80 }.buttonStyle(SecondaryButtonStyle()).frame(maxWidth: .infinity)
+                        Button(I18n.T("Load more games")) { VisibleCount += 80 }.buttonStyle(SecondaryButtonStyle()).frame(maxWidth: .infinity)
                     }
                 }
                 .padding(30).padding(.bottom, Store.ShowingBigPicture ? 30 : 100)
@@ -529,18 +529,18 @@ struct SearchView: View {
             .onChange(of: Store.SelectedGenre) { _, _ in VisibleCount = 80 }
     }
     private var GenrePicker: some View {
-        Picker("Genre", selection: $Store.SelectedGenre) {
-            ForEach(Store.Genres, id: \.self) { Genre in Text(Genre).tag(Genre) }
+        Picker(I18n.T("Genre"), selection: $Store.SelectedGenre) {
+            ForEach(Store.Genres, id: \.self) { Genre in Text(I18n.T(Genre)).tag(Genre) }
         }
     }
     private var SortPicker: some View {
-        Picker("Sort", selection: $Store.SortOrder) {
-            ForEach(["Relevance", "Name A–Z", "Recently updated", "Smallest size"], id: \.self) { Order in Text(Order).tag(Order) }
+        Picker(I18n.T("Sort"), selection: $Store.SortOrder) {
+            ForEach(["Relevance", "Name A–Z", "Recently updated", "Smallest size"], id: \.self) { Order in Text(I18n.T(Order)).tag(Order) }
         }
     }
     private var FilterButton: some View {
         Button { ShowFilters.toggle() } label: {
-            Label("Filters", systemImage: "slider.horizontal.3")
+            Label(I18n.T("Filters"), systemImage: "slider.horizontal.3")
                 .font(.system(size: Store.ShowingBigPicture ? 18 : 14, weight: .medium))
                 .frame(minWidth: Store.ShowingBigPicture ? 0 : 95)
                 .padding(.horizontal, Store.ShowingBigPicture ? 0 : 14)
@@ -549,10 +549,10 @@ struct SearchView: View {
         }.buttonStyle(MotionButtonStyle()).foregroundStyle(Theme.Accent)
     }
     private var ResultCount: some View {
-        Text("\(Results.count.formatted()) games").font(.system(size: Store.ShowingBigPicture ? 14 : 12)).foregroundStyle(Theme.SecondaryText)
+        Text(I18n.Interpolated("\(Results.count.formatted()) games")).font(.system(size: Store.ShowingBigPicture ? 14 : 12)).foregroundStyle(Theme.SecondaryText)
     }
     private var ProviderPicker: some View {
-        Picker("Provider", selection: $Store.SelectedProvider) {
+        Picker(I18n.T("Provider"), selection: $Store.SelectedProvider) {
             ForEach(Store.Providers, id: \.self) { Provider in Text(Provider).tag(Provider) }
         }
     }
@@ -612,7 +612,7 @@ struct SearchHighlightedCard: View {
             LinearGradient(colors: [.black.opacity(0.1), .clear, .black.opacity(0.92)], startPoint: .top, endPoint: .bottom)
             VStack(alignment: .leading, spacing: 13) {
                 HStack(spacing: 8) {
-                    Label("HIGHLIGHTED GAME", systemImage: "sparkles")
+                    Label(I18n.T("HIGHLIGHTED GAME"), systemImage: "sparkles")
                         .font(.system(size: 12, weight: .bold)).tracking(0.5)
                         .padding(.horizontal, 13).padding(.vertical, 8)
                         .background(Theme.Accent, in: Capsule())
@@ -620,7 +620,7 @@ struct SearchHighlightedCard: View {
                         Image(systemName: "checkmark.shield.fill")
                             .font(.system(size: 15)).padding(9)
                             .background(Theme.Accent, in: Circle())
-                            .help("Verified game")
+                            .help(I18n.T("Verified game"))
                     }
                     Spacer()
                     if let Status = Store.MacCompatibility(for: Game) {
@@ -645,7 +645,7 @@ struct SearchHighlightedCard: View {
                     }
                 }
                 Button { Store.OpenGame(Game) } label: {
-                    Label("View Details", systemImage: "info.circle")
+                    Label(I18n.T("View Details"), systemImage: "info.circle")
                         .font(.system(size: 13, weight: .semibold))
                         .frame(minWidth: 135).padding(.vertical, 10)
                 }.buttonStyle(PrimaryButtonStyle())
@@ -654,13 +654,13 @@ struct SearchHighlightedCard: View {
         .clipShape(RoundedRectangle(cornerRadius: 15))
         .overlay(RoundedRectangle(cornerRadius: 15).stroke(Theme.Border.opacity(0.3)))
         .contextMenu {
-            Button("View game") { Store.OpenGame(Game) }
+            Button(I18n.T("View game")) { Store.OpenGame(Game) }
             Button(Store.Wishlist.contains(Game.Id) ? "Remove from Play Later" : "Add to Play Later") { Store.ToggleWishlist(Game) }
         }
     }
 
     private func FeatureBadge(_ Title: String, _ Symbol: String) -> some View {
-        Label(Title, systemImage: Symbol).font(.system(size: 11, weight: .medium))
+        Label(I18n.T(Title), systemImage: Symbol).font(.system(size: 11, weight: .medium))
             .padding(.horizontal, 8).padding(.vertical, 5)
             .background(.black.opacity(0.62), in: Capsule())
     }
@@ -679,7 +679,7 @@ struct SearchDetailCard: View {
                 LinearGradient(colors: [.black.opacity(0.4), .clear, .black.opacity(0.6)], startPoint: .top, endPoint: .bottom)
                 VStack(alignment: .leading) {
                     if Store.VerifiedIds.contains(Game.Id) {
-                        Label("Verified", systemImage: "checkmark.shield")
+                        Label(I18n.T("Verified"), systemImage: "checkmark.shield")
                             .font(.system(size: 12, weight: .semibold))
                             .padding(.horizontal, 10).padding(.vertical, 6)
                             .background(Theme.Accent, in: Capsule())
@@ -698,7 +698,7 @@ struct SearchDetailCard: View {
                 Text(Game.Name).font(.system(size: 18, weight: .semibold)).lineLimit(2)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 if Game.Online {
-                    Label("Online", systemImage: "gamecontroller")
+                    Label(I18n.T("Online"), systemImage: "gamecontroller")
                         .font(.system(size: 11, weight: .medium))
                         .foregroundStyle(Theme.Accent)
                         .padding(.horizontal, 8).padding(.vertical, 5)
@@ -712,7 +712,7 @@ struct SearchDetailCard: View {
                             .background(Theme.Accent.opacity(0.1), in: RoundedRectangle(cornerRadius: 5))
                     }
                     if Game.Categories.count > 3 {
-                        Text("+\(Game.Categories.count - 3)")
+                        Text(I18n.Interpolated("+\(Game.Categories.count - 3)"))
                             .font(.system(size: 11, weight: .medium))
                             .padding(.horizontal, 7).padding(.vertical, 5)
                             .overlay(RoundedRectangle(cornerRadius: 5).stroke(Theme.Border))
@@ -728,7 +728,7 @@ struct SearchDetailCard: View {
                 Divider().overlay(Theme.Border)
                 HStack(spacing: 8) {
                     Button { Store.OpenGame(Game) } label: {
-                        Label("View Details", systemImage: "info.circle")
+                        Label(I18n.T("View Details"), systemImage: "info.circle")
                             .font(.system(size: 12, weight: .semibold))
                             .frame(maxWidth: .infinity).frame(height: 34)
                     }.buttonStyle(PrimaryButtonStyle())
@@ -746,20 +746,20 @@ struct SearchDetailCard: View {
         .overlay(RoundedRectangle(cornerRadius: 13).stroke(Theme.Border.opacity(0.3)))
         .foregroundStyle(Theme.CardForeground)
         .contextMenu {
-            Button("View game") { Store.OpenGame(Game) }
+            Button(I18n.T("View game")) { Store.OpenGame(Game) }
             Button(Store.Wishlist.contains(Game.Id) ? "Remove from Play Later" : "Add to Play Later") { Store.ToggleWishlist(Game) }
         }
     }
 
     private func ArtworkBadge(_ Title: String, _ Symbol: String) -> some View {
-        Label(Title, systemImage: Symbol).font(.system(size: 10, weight: .medium))
+        Label(I18n.T(Title), systemImage: Symbol).font(.system(size: 10, weight: .medium))
             .padding(.horizontal, 7).padding(.vertical, 4)
             .background(.black.opacity(0.68), in: Capsule())
     }
 
     private func Metadata(_ Title: String, _ Value: String?, _ Symbol: String) -> some View {
         VStack(alignment: .leading, spacing: 3) {
-            Label(Title, systemImage: Symbol).font(.system(size: 9, weight: .medium)).lineLimit(1)
+            Label(I18n.T(Title), systemImage: Symbol).font(.system(size: 9, weight: .medium)).lineLimit(1)
             Text(Value ?? "—").font(.system(size: 10, weight: .semibold)).lineLimit(1)
         }
         .foregroundStyle(Theme.SecondaryText)
@@ -791,9 +791,9 @@ struct WishlistView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
-                PageHeading(Title: "Play Later", Subtitle: "\(Store.WishlistGames.count) games saved for your next adventure.")
+                PageHeading(Title: I18n.T("Play Later"), Subtitle: I18n.Interpolated("\(Store.WishlistGames.count) games saved for your next adventure."))
                 if Store.WishlistGames.isEmpty {
-                    EmptyPanel(Symbol: "bookmark", Title: "Make room for your next adventure", Message: "Save games from Search or their detail page. Your list stays on this Mac.", ActionTitle: "Explore games") { Store.CurrentRoute = .Search }
+                    EmptyPanel(Symbol: "bookmark", Title: I18n.T("Make room for your next adventure"), Message: I18n.T("Save games from Search or their detail page. Your list stays on this Mac."), ActionTitle: I18n.T("Explore games")) { Store.CurrentRoute = .Search }
                 } else {
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 235), spacing: 18)], spacing: 20) {
                         ForEach(Store.WishlistGames) { Game in GameCard(Game: Game) }

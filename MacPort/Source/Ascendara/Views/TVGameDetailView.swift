@@ -39,7 +39,7 @@ struct TVGameDetailView: View {
                                 Summary: Summary, Artwork: Details?.HeaderURL ?? Game.ArtworkURL, Height: 520) {
                         if let Installed { TVLaunchButton(Game: Installed) }
                         else {
-                            Button { Reader.scrollTo("Downloads", anchor: .top) } label: { Label("Get Game", systemImage: "arrow.down") }
+                            Button { Reader.scrollTo("Downloads", anchor: .top) } label: { Label(I18n.T("Get Game"), systemImage: "arrow.down") }
                                 .buttonStyle(TVButtonStyle(Prominent: true))
                         }
                         Button { Store.ToggleWishlist(Game) } label: {
@@ -51,7 +51,7 @@ struct TVGameDetailView: View {
                         ScrollView(.horizontal) {
                             HStack(spacing: 14 * Scale) {
                                 ForEach(Tabs, id: \.self) { Value in
-                                    Button(Value) { Tab = Value }.buttonStyle(TVButtonStyle(Selected: Tab == Value))
+                                    Button(I18n.T(Value)) { Tab = Value }.buttonStyle(TVButtonStyle(Selected: Tab == Value))
                                 }
                             }.padding(.vertical, 5 * Scale)
                         }.scrollIndicators(.hidden)
@@ -59,14 +59,14 @@ struct TVGameDetailView: View {
                         DownloadOptions.id("Downloads")
                         HStack(spacing: 16 * Scale) {
                             if let Installed {
-                                Button { Editor = Installed } label: { Label("Game Options", systemImage: "slider.horizontal.3") }
+                                Button { Editor = Installed } label: { Label(I18n.T("Game Options"), systemImage: "slider.horizontal.3") }
                                     .buttonStyle(TVButtonStyle())
-                                Button("Show in Finder") { Store.RevealGame(Installed) }.buttonStyle(TVButtonStyle())
+                                Button(I18n.T("Show in Finder")) { Store.RevealGame(Installed) }.buttonStyle(TVButtonStyle())
                             } else {
-                                Button("Already Installed? Locate Game") { Store.ImportGame(For: Game) }.buttonStyle(TVButtonStyle())
+                                Button(I18n.T("Already Installed? Locate Game")) { Store.ImportGame(For: Game) }.buttonStyle(TVButtonStyle())
                             }
                             if let Website = Details?.WebsiteURL {
-                                Button("Official Website") { Store.OpenExternal(Website.absoluteString) }.buttonStyle(TVButtonStyle())
+                                Button(I18n.T("Official Website")) { Store.OpenExternal(Website.absoluteString) }.buttonStyle(TVButtonStyle())
                             }
                         }
                     }.padding(.horizontal, 40 * Scale)
@@ -104,14 +104,15 @@ struct TVGameDetailView: View {
                 if Game.Online { MetadataValue("MULTIPLAYER", "Online") }
                 if Game.Dlc { MetadataValue("EXTRAS", "Includes DLC") }
                 if let Installed { MetadataValue("PLAYTIME", FormatPlayTime(Installed.PlayTimeSeconds)) }
+                if let Size = Installed?.InstalledSizeBytes { MetadataValue("INSTALLED SIZE", ByteCountFormatter.string(fromByteCount: Size, countStyle: .file)) }
             }
         }.scrollIndicators(.hidden)
     }
 
     private func MetadataValue(_ Title: String, _ Value: String) -> some View {
         VStack(alignment: .leading, spacing: 8 * Scale) {
-            Text(Title).font(.system(size: 12 * Scale, weight: .bold)).tracking(1.5 * Scale).foregroundStyle(TVStyle.Secondary)
-            Text(Value).font(.system(size: 21 * Scale, weight: .medium)).lineLimit(1)
+            Text(I18n.T(Title)).font(.system(size: 12 * Scale, weight: .bold)).tracking(1.5 * Scale).foregroundStyle(TVStyle.Secondary)
+            Text(I18n.T(Value)).font(.system(size: 21 * Scale, weight: .medium)).lineLimit(1)
         }
     }
 
@@ -121,13 +122,13 @@ struct TVGameDetailView: View {
         case "Requirements": Requirements
         case "Reviews":
             VStack(alignment: .leading, spacing: 20 * Scale) {
-                Text("Player reviews").font(.system(size: 30 * Scale, weight: .semibold))
+                Text(I18n.T("Player reviews")).font(.system(size: 30 * Scale, weight: .semibold))
                 RatingsView(Game: Game).environmentObject(Store)
             }.padding(26 * Scale).background(TVStyle.Panel, in: RoundedRectangle(cornerRadius: 16 * Scale))
         case "Release History": History
         default:
             VStack(alignment: .leading, spacing: 20 * Scale) {
-                Text("About the game").font(.system(size: 30 * Scale, weight: .semibold))
+                Text(I18n.T("About the game")).font(.system(size: 30 * Scale, weight: .semibold))
                 if Loading { ProgressView("Loading game information…").font(.system(size: 19 * Scale)) }
                 Text(Description)
                     .font(.system(size: 22 * Scale)).foregroundStyle(TVStyle.Secondary)
@@ -143,32 +144,32 @@ struct TVGameDetailView: View {
                 ScrollView(.horizontal) {
                     LazyHStack(spacing: 20 * Scale) {
                         ForEach(Array(Details.Screenshots.enumerated()), id: \.element) { Index, URL in
-                            TVGameTile(Name: "Screenshot \(Index + 1)", Subtitle: "View full screen", Artwork: URL, Width: 410 * Scale) {
+                            TVGameTile(Name: "Screenshot \(Index + 1)", Subtitle: I18n.T("View full screen"), Artwork: URL, Width: 410 * Scale) {
                                 Screenshot = TVScreenshot(URL: URL)
                             }
                         }
                     }.padding(.vertical, 8 * Scale)
                 }.scrollIndicators(.hidden)
             } else {
-                TVEmptyState(Symbol: "photo.on.rectangle", Title: Loading ? "Loading screenshots" : "No screenshots available", Message: "Screenshots appear here when they are available for this game.")
+                TVEmptyState(Symbol: "photo.on.rectangle", Title: Loading ? "Loading screenshots" : "No screenshots available", Message: I18n.T("Screenshots appear here when they are available for this game."))
             }
         }
     }
 
     private var Requirements: some View {
         VStack(alignment: .leading, spacing: 26 * Scale) {
-            Requirement(Title: "Minimum requirements", Text: Details?.MinimumRequirements ?? Game.MinimumRequirements)
+            Requirement(Title: I18n.T("Minimum requirements"), Text: Details?.MinimumRequirements ?? Game.MinimumRequirements)
             if let Recommended = Details?.RecommendedRequirements, !Recommended.isEmpty {
-                Requirement(Title: "Recommended requirements", Text: Recommended)
+                Requirement(Title: I18n.T("Recommended requirements"), Text: Recommended)
             }
-            Text("These requirements describe the original game. Windows titles also need a compatible runtime on your Mac.")
+            Text(I18n.T("These requirements describe the original game. Windows titles also need a compatible runtime on your Mac."))
                 .font(.system(size: 18 * Scale)).foregroundStyle(TVStyle.Secondary)
         }
     }
 
     private func Requirement(Title: String, Text: String?) -> some View {
         VStack(alignment: .leading, spacing: 18 * Scale) {
-            SwiftUI.Text(Title).font(.system(size: 28 * Scale, weight: .semibold))
+            SwiftUI.Text(I18n.T(Title)).font(.system(size: 28 * Scale, weight: .semibold))
             SwiftUI.Text(Text.flatMap { $0.isEmpty ? nil : $0 } ?? "Requirements have not been provided.")
                 .font(.system(size: 21 * Scale)).lineSpacing(6 * Scale).foregroundStyle(TVStyle.Secondary)
                 .textSelection(.enabled)
@@ -178,11 +179,11 @@ struct TVGameDetailView: View {
 
     private var History: some View {
         VStack(alignment: .leading, spacing: 18 * Scale) {
-            Text("Release history").font(.system(size: 30 * Scale, weight: .semibold))
+            Text(I18n.T("Release history")).font(.system(size: 30 * Scale, weight: .semibold))
             if HistoryLoading { ProgressView("Loading releases…").font(.system(size: 20 * Scale)) }
             if let HistoryError {
                 Text(HistoryError).font(.system(size: 20 * Scale)).foregroundStyle(TVStyle.Secondary)
-                Button("Try Again") { Task { await LoadHistory() } }.buttonStyle(TVButtonStyle())
+                Button(I18n.T("Try Again")) { Task { await LoadHistory() } }.buttonStyle(TVButtonStyle())
             }
             ForEach(Releases) { Release in
                 Button { Store.OpenGame(Release.Game) } label: {
@@ -198,21 +199,21 @@ struct TVGameDetailView: View {
                 }.buttonStyle(TVButtonStyle())
             }
             if !HistoryLoading && Releases.isEmpty && HistoryError == nil {
-                Text("No earlier releases are available.").font(.system(size: 21 * Scale)).foregroundStyle(TVStyle.Secondary)
+                Text(I18n.T("No earlier releases are available.")).font(.system(size: 21 * Scale)).foregroundStyle(TVStyle.Secondary)
             }
         }
     }
 
     private var DownloadOptions: some View {
         VStack(alignment: .leading, spacing: 24 * Scale) {
-            TVPageHeading(Title: "Download options", Subtitle: "Choose a provider to see its available files.")
+            TVPageHeading(Title: I18n.T("Download options"), Subtitle: I18n.T("Choose a provider to see its available files."))
             if Providers.isEmpty {
-                Text("This source has not provided a download link.").font(.system(size: 21 * Scale)).foregroundStyle(TVStyle.Secondary)
+                Text(I18n.T("This source has not provided a download link.")).font(.system(size: 21 * Scale)).foregroundStyle(TVStyle.Secondary)
             } else {
                 ScrollView(.horizontal) {
                     HStack(spacing: 14 * Scale) {
                         ForEach(Providers, id: \.self) { Value in
-                            Button(Value) { Provider = Value }.buttonStyle(TVButtonStyle(Selected: Value == Provider))
+                            Button(I18n.T(Value)) { Provider = Value }.buttonStyle(TVButtonStyle(Selected: Value == Provider))
                         }
                     }.padding(.vertical, 5 * Scale)
                 }.scrollIndicators(.hidden)
@@ -227,33 +228,33 @@ struct TVGameDetailView: View {
                             if Store.ResolvingGameIds.contains(Game.Id) {
                                 HStack(spacing: 8) {
                                     ProgressView().controlSize(.small)
-                                    Text("Preparing…")
+                                    Text(I18n.T("Preparing…"))
                                 }
                             } else {
-                                Label("Download", systemImage: "arrow.down")
+                                Label(I18n.T("Download"), systemImage: "arrow.down")
                             }
                         }.buttonStyle(TVButtonStyle(Prominent: true)).disabled(Store.ResolvingGameIds.contains(Game.Id))
                         if let Scheme = URL(string: Link)?.scheme?.lowercased(), ["http", "https"].contains(Scheme) {
                             Button { Store.OpenExternal(Link) } label: { Image(systemName: "arrow.up.right") }
-                                .buttonStyle(TVButtonStyle()).accessibilityLabel("Open provider link")
+                                .buttonStyle(TVButtonStyle()).accessibilityLabel(I18n.T("Open provider link"))
                         }
                     }.padding(24 * Scale).background(TVStyle.Panel, in: RoundedRectangle(cornerRadius: 14 * Scale))
                 }
             }
             VStack(alignment: .leading, spacing: 14 * Scale) {
-                Text("Use a direct link").font(.system(size: 22 * Scale, weight: .semibold))
+                Text(I18n.T("Use a direct link")).font(.system(size: 22 * Scale, weight: .semibold))
                 HStack(spacing: 16 * Scale) {
-                    TextField("https://…", text: $DirectLink).textFieldStyle(.plain)
+                    TextField(I18n.T("https://…"), text: $DirectLink).textFieldStyle(.plain)
                         .font(.system(size: 21 * Scale)).padding(20 * Scale)
                         .background(TVStyle.Panel, in: RoundedRectangle(cornerRadius: 10 * Scale))
                     Button { Store.StartDownload(Game, Link: DirectLink) } label: {
                         if Store.ResolvingGameIds.contains(Game.Id) {
                             HStack(spacing: 8) {
                                 ProgressView().controlSize(.small)
-                                Text("Preparing…")
+                                Text(I18n.T("Preparing…"))
                             }
                         } else {
-                            Text("Download")
+                            Text(I18n.T("Download"))
                         }
                     }
                     .buttonStyle(TVButtonStyle())
@@ -288,13 +289,13 @@ private struct TVScreenshotView: View {
     var body: some View {
         VStack(spacing: 20 * Scale) {
             HStack {
-                Text("Screenshot").font(.system(size: 25 * Scale, weight: .semibold))
+                Text(I18n.T("Screenshot")).font(.system(size: 25 * Scale, weight: .semibold))
                 Spacer()
-                Button("Close") { Dismiss() }.buttonStyle(TVButtonStyle()).keyboardShortcut(.cancelAction)
+                Button(I18n.T("Close")) { Dismiss() }.buttonStyle(TVButtonStyle()).keyboardShortcut(.cancelAction)
             }
             AsyncImage(url: URL) { Phase in
                 if let Image = Phase.image { Image.resizable().scaledToFit() }
-                else if Phase.error != nil { TVEmptyState(Symbol: "photo", Title: "Unable to load screenshot", Message: "Try opening the screenshot again.") }
+                else if Phase.error != nil { TVEmptyState(Symbol: "photo", Title: I18n.T("Unable to load screenshot"), Message: I18n.T("Try opening the screenshot again.")) }
                 else { ProgressView() }
             }.frame(maxWidth: .infinity, maxHeight: .infinity)
         }

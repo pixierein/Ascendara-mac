@@ -26,16 +26,16 @@ struct PreferencesDashboardView: View {
         ("General", "slider.horizontal.3"), ("Game Index", "externaldrive"),
         ("Downloads", "arrow.down.to.line"), ("Gaming", "gamecontroller"),
         ("Saves & Backups", "folder.badge.gearshape"), ("Compatibility", "terminal"),
-        ("Tools", "shippingbox"), ("Advanced", "flask")
+        ("Tools", "shippingbox"), ("Language & Themes", "paintpalette"), ("Updates & Notifications", "bell"), ("Advanced", "flask")
     ]
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 30) {
                 HStack(alignment: .firstTextBaseline) {
-                    Text("Ascendara Preferences").font(.system(size: 30, weight: .bold))
+                    Text(I18n.T("Ascendara Preferences")).font(.system(size: 30, weight: .bold))
                     Spacer()
-                    Text("v\(AppVersion.Current)")
+                    Text(I18n.Interpolated("v\(AppVersion.Current)"))
                         .font(.system(size: 13)).foregroundStyle(Theme.SecondaryText)
                 }
                 HStack(alignment: .top, spacing: 28) {
@@ -48,6 +48,8 @@ struct PreferencesDashboardView: View {
                         case "Saves & Backups": Saves
                         case "Compatibility": Compatibility
                         case "Tools": Tools
+                        case "Language & Themes": CustomizationView()
+                        case "Updates & Notifications": UpdatesNotificationsView()
                         case "Advanced": Advanced
                         default: General
                         }
@@ -78,7 +80,7 @@ struct PreferencesDashboardView: View {
         VStack(alignment: .leading, spacing: 8) {
             ForEach(Sections, id: \.0) { Title, Symbol in
                 Button { Section = Title } label: {
-                    Label(Title, systemImage: Symbol)
+                    Label(I18n.T(Title), systemImage: Symbol)
                         .font(.system(size: 13, weight: Section == Title ? .semibold : .medium))
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal, 14).padding(.vertical, 11)
@@ -87,12 +89,12 @@ struct PreferencesDashboardView: View {
                 }.buttonStyle(MotionButtonStyle())
             }
             VStack(alignment: .leading, spacing: 11) {
-                Label("Hey there, please read this!", systemImage: "hand.raised")
+                Label(I18n.T("Hey there, please read this!"), systemImage: "hand.raised")
                     .font(.system(size: 13, weight: .semibold)).foregroundStyle(.orange)
-                Text("Please support the developers by purchasing games you enjoy.")
+                Text(I18n.T("Please support the developers by purchasing games you enjoy."))
                     .font(.system(size: 12)).foregroundStyle(Theme.SecondaryText)
                 if SupportNoteExpanded {
-                    Text("Ascendara is made possible by developers and publishers. Buy games you enjoy whenever you can.")
+                    Text(I18n.T("Ascendara is made possible by developers and publishers. Buy games you enjoy whenever you can."))
                         .font(.system(size: 12)).foregroundStyle(Theme.SecondaryText)
                 }
                 Button(SupportNoteExpanded ? "Show less" : "Read more") { SupportNoteExpanded.toggle() }
@@ -107,18 +109,18 @@ struct PreferencesDashboardView: View {
 
     private var General: some View {
         VStack(alignment: .leading, spacing: 18) {
-            SettingsHeading("General", "Appearance, startup behavior and language.", "slider.horizontal.3")
+            SettingsHeading(I18n.T("General"), "Appearance, startup behavior and language.", "slider.horizontal.3")
             TwoColumns {
                 PreferenceCard {
                     VStack(alignment: .leading, spacing: 20) {
                         CardTitle("APPEARANCE")
-                        Text("App Themes").font(.system(size: 13, weight: .semibold))
+                        Text(I18n.T("App Themes")).font(.system(size: 13, weight: .semibold))
                         Button {
                             let Show = !(LightThemesExpanded && DarkThemesExpanded)
                             LightThemesExpanded = Show
                             DarkThemesExpanded = Show
                         } label: {
-                            Label("Choose Theme", systemImage: "paintpalette")
+                            Label(I18n.T("Choose Theme"), systemImage: "paintpalette")
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }.buttonStyle(SecondaryButtonStyle())
                         ThemeChoices("Light Themes", Names: ["light", "purple", "blue", "emerald", "rose", "amber"], Expanded: $LightThemesExpanded)
@@ -133,10 +135,10 @@ struct PreferencesDashboardView: View {
                 PreferenceCard {
                     VStack(alignment: .leading, spacing: 22) {
                         CardTitle("APPLICATION")
-                        Picker("Default Landing Page", selection: $Store.Settings.DefaultPage) {
+                        Picker(I18n.T("Default Landing Page"), selection: $Store.Settings.DefaultPage) {
                             ForEach(["Home", "Search", "Library", "Downloads"], id: \.self) { Text($0).tag($0) }
                         }
-                        Text("Choose which page opens when you start Ascendara.")
+                        Text(I18n.T("Choose which page opens when you start Ascendara."))
                             .font(.system(size: 12)).foregroundStyle(Theme.SecondaryText)
                         PreferenceToggle("Open Ascendara on Startup", "Launch Ascendara when you sign in to this Mac.", Value: Binding(
                             get: { OpensAtLogin }, set: { SetLoginItem($0) }))
@@ -146,10 +148,10 @@ struct PreferencesDashboardView: View {
                         }
                         Divider()
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("Onboarding").font(.system(size: 13, weight: .semibold))
-                            Text("Run the welcome setup again to test a new installation.")
+                            Text(I18n.T("Onboarding")).font(.system(size: 13, weight: .semibold))
+                            Text(I18n.T("Run the welcome setup again to test a new installation."))
                                 .font(.system(size: 12)).foregroundStyle(Theme.SecondaryText)
-                            Button("Show onboarding again") { Store.ReplayWelcome() }
+                            Button(I18n.T("Show onboarding again")) { Store.ReplayWelcome() }
                                 .buttonStyle(SecondaryButtonStyle())
                         }
                     }
@@ -160,19 +162,19 @@ struct PreferencesDashboardView: View {
 
     private var GameIndex: some View {
         VStack(alignment: .leading, spacing: 18) {
-            SettingsHeading("Game Index", "The game list Ascendara searches, kept up to date while the app is open.", "externaldrive")
+            SettingsHeading(I18n.T("Game Index"), "The game list Ascendara searches, kept up to date while the app is open.", "externaldrive")
             TwoColumns {
                 VStack(spacing: 16) {
                     PreferenceCard {
                         VStack(alignment: .leading, spacing: 18) {
                             HStack {
-                                Text("Ascendara Index").font(.system(size: 16, weight: .semibold))
+                                Text(I18n.T("Ascendara Index")).font(.system(size: 16, weight: .semibold))
                                 Text(Store.Settings.CatalogSource == "local" ? "Local file" : Store.Settings.CatalogSource == "custom" ? "Custom source" : "Community source")
                                     .font(.system(size: 10, weight: .medium)).foregroundStyle(.green)
                                     .padding(.horizontal, 8).padding(.vertical, 4)
                                     .background(Color.green.opacity(0.12), in: Capsule())
                             }
-                            Text("Games from the currently selected index.")
+                            Text(I18n.T("Games from the currently selected index."))
                                 .font(.system(size: 12)).foregroundStyle(Theme.SecondaryText)
                             HStack(spacing: 10) {
                                 IndexMetric("GAMES", "\(Store.Games.count.formatted())")
@@ -184,9 +186,9 @@ struct PreferencesDashboardView: View {
                                     .frame(maxWidth: .infinity)
                             }.buttonStyle(PrimaryButtonStyle()).disabled(Store.IsLoading)
                             HStack {
-                                Button("Use bundled Ascendara index") { Store.UseBundledCatalog() }
+                                Button(I18n.T("Use bundled Ascendara index")) { Store.UseBundledCatalog() }
                                     .buttonStyle(SecondaryButtonStyle())
-                                Button("Import JSON file…") { Store.ImportCatalog() }
+                                Button(I18n.T("Import JSON file…")) { Store.ImportCatalog() }
                                     .buttonStyle(SecondaryButtonStyle())
                             }
                             if let Warning = Store.CatalogWarning {
@@ -196,11 +198,11 @@ struct PreferencesDashboardView: View {
                     }
                     PreferenceCard {
                         VStack(alignment: .leading, spacing: 12) {
-                            Label("External Sources", systemImage: "globe")
+                            Label(I18n.T("External Sources"), systemImage: "globe")
                                 .font(.system(size: 15, weight: .semibold))
-                            Text("Choose the community index, a custom source, or a local JSON catalogue.")
+                            Text(I18n.T("Choose the community index, a custom source, or a local JSON catalogue."))
                                 .font(.system(size: 12)).foregroundStyle(Theme.SecondaryText)
-                            Button("Manage sources →") { Store.CurrentRoute = .Sources }
+                            Button(I18n.T("Manage sources →")) { Store.CurrentRoute = .Sources }
                                 .buttonStyle(SecondaryButtonStyle())
                         }
                     }
@@ -208,12 +210,12 @@ struct PreferencesDashboardView: View {
             } Right: {
                 PreferenceCard {
                     VStack(alignment: .leading, spacing: 20) {
-                        Text("Settings").font(.system(size: 16, weight: .semibold))
+                        Text(I18n.T("Settings")).font(.system(size: 16, weight: .semibold))
                         PreferenceToggle("Keep Index Up to Date", "Refresh the game index hourly while Ascendara is open.", Value: $Store.Settings.AutoRefreshIndex)
                         Divider()
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("Storage Location").font(.system(size: 13, weight: .semibold))
-                            Text("Where index files are saved on this Mac.").font(.system(size: 12)).foregroundStyle(Theme.SecondaryText)
+                            Text(I18n.T("Storage Location")).font(.system(size: 13, weight: .semibold))
+                            Text(I18n.T("Where index files are saved on this Mac.")).font(.system(size: 12)).foregroundStyle(Theme.SecondaryText)
                             HStack {
                                 Text(AppPaths.Support.appendingPathComponent("CatalogCache").path)
                                     .font(.system(size: 11, design: .monospaced)).lineLimit(1).truncationMode(.middle)
@@ -228,11 +230,11 @@ struct PreferencesDashboardView: View {
                         }
                         Divider()
                         VStack(alignment: .leading, spacing: 9) {
-                            Text("Blacklisted Games").font(.system(size: 13, weight: .semibold))
-                            Text("Game IDs listed here will not appear in search or Home.")
+                            Text(I18n.T("Blacklisted Games")).font(.system(size: 13, weight: .semibold))
+                            Text(I18n.T("Game IDs listed here will not appear in search or Home."))
                                 .font(.system(size: 12)).foregroundStyle(Theme.SecondaryText)
                             HStack {
-                                TextField("Game ID", text: $NewBlockedId).textFieldStyle(.roundedBorder)
+                                TextField(I18n.T("Game ID"), text: $NewBlockedId).textFieldStyle(.roundedBorder)
                                 Button { AddBlockedId() } label: { Image(systemName: "plus") }
                                     .buttonStyle(SecondaryButtonStyle()).disabled(NewBlockedId.isEmpty)
                             }
@@ -260,21 +262,21 @@ struct PreferencesDashboardView: View {
 
     private var Downloads: some View {
         VStack(alignment: .leading, spacing: 18) {
-            SettingsHeading("Downloads", "How games download, where they go, and torrent and debrid services.", "arrow.down.to.line")
+            SettingsHeading(I18n.T("Downloads"), "How games download, where they go, and torrent and debrid services.", "arrow.down.to.line")
             TwoColumns {
                 VStack(spacing: 16) {
                     PreferenceCard {
                         VStack(alignment: .leading, spacing: 18) {
-                            Text("Download Manager").font(.system(size: 16, weight: .semibold))
+                            Text(I18n.T("Download Manager")).font(.system(size: 16, weight: .semibold))
                             VStack(alignment: .leading, spacing: 10) {
-                                Text("Concurrent Downloads").font(.system(size: 13, weight: .semibold))
-                                Text("Choose how many games Ascendara downloads at once.")
+                                Text(I18n.T("Concurrent Downloads")).font(.system(size: 13, weight: .semibold))
+                                Text(I18n.T("Choose how many games Ascendara downloads at once."))
                                     .font(.system(size: 12)).foregroundStyle(Theme.SecondaryText)
                                 HStack {
                                     Button { Store.Settings.ConcurrentDownloads = max(1, Store.Settings.ConcurrentDownloads - 1) } label: { Image(systemName: "chevron.left") }
                                         .disabled(Store.Settings.ConcurrentDownloads <= 1)
                                     Spacer()
-                                    Text("\(Store.Settings.ConcurrentDownloads)").font(.system(size: 25, weight: .semibold)).monospacedDigit()
+                                    Text(I18n.Interpolated("\(Store.Settings.ConcurrentDownloads)")).font(.system(size: 25, weight: .semibold)).monospacedDigit()
                                     Text(Store.Settings.ConcurrentDownloads == 1 ? "game" : "games").font(.system(size: 12)).foregroundStyle(Theme.SecondaryText)
                                     Spacer()
                                     Button { Store.Settings.ConcurrentDownloads = min(8, Store.Settings.ConcurrentDownloads + 1) } label: { Image(systemName: "chevron.right") }
@@ -288,24 +290,36 @@ struct PreferencesDashboardView: View {
                                 Stepper("Connections per file: \(Store.Settings.DownloadThreads)", value: $Store.Settings.DownloadThreads, in: 1...32)
                             }
                             HStack {
-                                Text("Speed limit (KB/s)").font(.system(size: 13))
+                                Text(I18n.T("Speed limit (KB/s)")).font(.system(size: 13))
                                 Spacer()
-                                TextField("0 = unlimited", value: $Store.Settings.DownloadSpeedLimitKBps, format: .number)
+                                TextField(I18n.T("0 = unlimited"), value: $Store.Settings.DownloadSpeedLimitKBps, format: .number)
                                     .textFieldStyle(.roundedBorder).frame(width: 145)
                             }
                             PreferenceToggle("Extract after Download", "Unpack supported archives when a download finishes.", Value: $Store.Settings.AutoExtract)
+                            PreferenceToggle("Space-saving extraction", "Reclaim archive blocks after their final read. An interrupted extraction needs a fresh download. Unsupported archives use normal extraction with a space check.", Value: $Store.Settings.SpaceSavingExtraction)
+                            HStack {
+                                Text(Store.Settings.ExtractionDirectory.isEmpty ? "Extract beside the archive" : Store.Settings.ExtractionDirectory)
+                                    .font(.caption).lineLimit(2)
+                                Spacer()
+                                Button(I18n.T("Extraction folder…")) {
+                                    if let Folder = Store.ChooseFolder(Title: I18n.T("Choose an extraction folder, including another drive")) { Store.Settings.ExtractionDirectory = Folder.path }
+                                }
+                            }
+                            if !Store.Settings.ExtractionDirectory.isEmpty {
+                                Button(I18n.T("Use download folder for extraction")) { Store.Settings.ExtractionDirectory = "" }
+                            }
                             PreferenceToggle("Prevent Sleep", "Keep this Mac awake during downloads and gameplay.", Value: $Store.Settings.KeepAwake)
                         }
                     }
                     PreferenceCard {
                         VStack(alignment: .leading, spacing: 14) {
-                            Text("Download Locations").font(.system(size: 16, weight: .semibold))
-                            Text("Default Download Location").font(.system(size: 13, weight: .semibold))
+                            Text(I18n.T("Download Locations")).font(.system(size: 16, weight: .semibold))
+                            Text(I18n.T("Default Download Location")).font(.system(size: 13, weight: .semibold))
                             HStack {
                                 Text(Store.Settings.DownloadDirectory).font(.system(size: 12)).lineLimit(1).truncationMode(.middle)
                                     .frame(maxWidth: .infinity, alignment: .leading)
                                     .padding(10).background(Theme.Background, in: RoundedRectangle(cornerRadius: 7))
-                                Button("Select Directory") { Store.ChooseDownloadDirectory() }.buttonStyle(PrimaryButtonStyle())
+                                Button(I18n.T("Select Directory")) { Store.ChooseDownloadDirectory() }.buttonStyle(PrimaryButtonStyle())
                             }
                         }
                     }
@@ -314,38 +328,38 @@ struct PreferencesDashboardView: View {
                 VStack(spacing: 16) {
                     PreferenceCard {
                         VStack(alignment: .leading, spacing: 16) {
-                            Text("TorBox").font(.system(size: 16, weight: .semibold))
-                            Text("Debrid services convert supported links into direct downloads. Set your TorBox API key to enable available routes.")
+                            Text(I18n.T("TorBox")).font(.system(size: 16, weight: .semibold))
+                            Text(I18n.T("Debrid services convert supported links into direct downloads. Set your TorBox API key to enable available routes."))
                                 .font(.system(size: 12)).foregroundStyle(Theme.SecondaryText)
                             HStack {
-                                SecureField("Paste TorBox API key", text: $TorBoxDraft)
+                                SecureField(I18n.T("Paste TorBox API key"), text: $TorBoxDraft)
                                     .textFieldStyle(.roundedBorder)
-                                Button("Set") { Store.Settings.TorBoxAPIKey = TorBoxDraft; Store.SaveSettings() }
+                                Button(I18n.T("Set")) { Store.Settings.TorBoxAPIKey = TorBoxDraft; Store.SaveSettings() }
                                     .buttonStyle(SecondaryButtonStyle())
                                     .disabled(TorBoxDraft == Store.Settings.TorBoxAPIKey)
                             }
                             HStack {
-                                Button("Learn how to get your API key ↗") { Store.OpenExternal("https://ascendara.app/docs/features/torbox-integration") }
+                                Button(I18n.T("Learn how to get your API key ↗")) { Store.OpenExternal("https://ascendara.app/docs/features/torbox-integration") }
                                     .buttonStyle(.plain).foregroundStyle(Theme.Accent)
                                 Spacer()
-                                Button("Open TorBox") { Store.CurrentRoute = .TorBox }.buttonStyle(.plain).foregroundStyle(Theme.Accent)
+                                Button(I18n.T("Open TorBox")) { Store.CurrentRoute = .TorBox }.buttonStyle(.plain).foregroundStyle(Theme.Accent)
                             }.font(.system(size: 12))
                         }
                     }
                     PreferenceCard {
                         VStack(alignment: .leading, spacing: 15) {
-                            Text("Torrenting").font(.system(size: 16, weight: .semibold))
-                            Text("Connect a running qBittorrent Web UI to send magnet links from Ascendara.")
+                            Text(I18n.T("Torrenting")).font(.system(size: 16, weight: .semibold))
+                            Text(I18n.T("Connect a running qBittorrent Web UI to send magnet links from Ascendara."))
                                 .font(.system(size: 12)).foregroundStyle(Theme.SecondaryText)
                             HStack {
                                 Circle().fill(QBitStatus == "Connected" ? Color.green : Theme.SecondaryText).frame(width: 8, height: 8)
-                                Text("qBittorrent Web UI \(QBitStatus == "Connected" ? "Active" : QBitStatus == nil ? "Not checked" : "Inactive")")
+                                Text(I18n.Interpolated("qBittorrent Web UI \(QBitStatus == "Connected" ? "Active" : QBitStatus == nil ? "Not checked" : "Inactive")"))
                                     .font(.system(size: 12)).foregroundStyle(Theme.SecondaryText)
                             }.padding(11).frame(maxWidth: .infinity, alignment: .leading)
                                 .background(Theme.Muted.opacity(0.45), in: RoundedRectangle(cornerRadius: 8))
                             SettingsField("Web UI URL", Text: $Store.Settings.QBitTorrentURL)
                             SettingsField("Username", Text: $Store.Settings.QBitTorrentUsername)
-                            SecureField("Password", text: $Store.Settings.QBitTorrentPassword).textFieldStyle(.roundedBorder)
+                            SecureField(I18n.T("Password"), text: $Store.Settings.QBitTorrentPassword).textFieldStyle(.roundedBorder)
                             HStack {
                                 Button(CheckingQBit ? "Checking…" : "Test connection") { TestQBit() }
                                     .buttonStyle(SecondaryButtonStyle()).disabled(CheckingQBit)
@@ -361,19 +375,19 @@ struct PreferencesDashboardView: View {
 
     private var Gaming: some View {
         VStack(alignment: .leading, spacing: 18) {
-            SettingsHeading("Gaming", "Launching games, Discord status, Big Picture and achievement tracking.", "gamecontroller")
+            SettingsHeading(I18n.T("Gaming"), "Launching games, Discord status, Big Picture and achievement tracking.", "gamecontroller")
             TwoColumns {
                 PreferenceCard {
                     VStack(alignment: .leading, spacing: 21) {
                         PreferenceToggle("Hide on Game Launch", "Hide Ascendara after starting a game.", Value: $Store.Settings.HideOnGameLaunch)
                         PreferenceToggle("Prevent Sleep", "Keep this Mac awake while a game is running.", Value: $Store.Settings.KeepAwake)
                         VStack(alignment: .leading, spacing: 7) {
-                            Text("Default launch arguments").font(.system(size: 13, weight: .semibold))
+                            Text(I18n.T("Default launch arguments")).font(.system(size: 13, weight: .semibold))
                             TextEditor(text: $Store.Settings.LaunchArguments)
                                 .font(.system(size: 11, design: .monospaced))
                                 .scrollContentBackground(.hidden).frame(height: 75).padding(8)
                                 .background(Theme.Background, in: RoundedRectangle(cornerRadius: 8))
-                            Text("One argument per line when a game has no custom arguments.")
+                            Text(I18n.T("One argument per line when a game has no custom arguments."))
                                 .font(.system(size: 11)).foregroundStyle(Theme.SecondaryText)
                         }
                     }
@@ -381,7 +395,7 @@ struct PreferencesDashboardView: View {
             } Right: {
                 PreferenceCard {
                     VStack(alignment: .leading, spacing: 18) {
-                        Text("Big Picture Mode").font(.system(size: 16, weight: .semibold))
+                        Text(I18n.T("Big Picture Mode")).font(.system(size: 16, weight: .semibold))
                         HStack(alignment: .top, spacing: 12) {
                             Image(systemName: "gamecontroller").font(.system(size: 18)).foregroundStyle(Theme.Accent)
                                 .frame(width: 34, height: 34).background(Theme.Accent.opacity(0.1), in: RoundedRectangle(cornerRadius: 8))
@@ -394,7 +408,7 @@ struct PreferencesDashboardView: View {
                             Spacer()
                         }.padding(13).background(Theme.Muted.opacity(0.5), in: RoundedRectangle(cornerRadius: 9))
                         Button { Store.ShowingBigPicture = true } label: {
-                            Label("Enter Big Picture", systemImage: "gamecontroller").frame(maxWidth: .infinity)
+                            Label(I18n.T("Enter Big Picture"), systemImage: "gamecontroller").frame(maxWidth: .infinity)
                         }.buttonStyle(PrimaryButtonStyle())
                     }
                 }
@@ -404,21 +418,21 @@ struct PreferencesDashboardView: View {
 
     private var Saves: some View {
         VStack(alignment: .leading, spacing: 18) {
-            SettingsHeading("Saves & Backups", "Back up game files and library metadata.", "folder.badge.gearshape")
+            SettingsHeading(I18n.T("Saves & Backups"), "Back up game files and library metadata.", "folder.badge.gearshape")
             PreferenceCard {
                 VStack(alignment: .leading, spacing: 20) {
-                    Text("Game Backups").font(.system(size: 16, weight: .semibold))
+                    Text(I18n.T("Game Backups")).font(.system(size: 16, weight: .semibold))
                     HStack(alignment: .bottom) {
                         SettingsField("Backup Location", Text: $Store.Settings.BackupDirectory)
-                        Button("Select Directory") { ChooseBackupDirectory() }.buttonStyle(PrimaryButtonStyle())
+                        Button(I18n.T("Select Directory")) { ChooseBackupDirectory() }.buttonStyle(PrimaryButtonStyle())
                     }
-                    Text("\(BackupCount) local backups. Use a game's library menu to create or restore its files.")
+                    Text(I18n.Interpolated("\(BackupCount) local backups. Use a game's library menu to create or restore its files."))
                         .font(.system(size: 12)).foregroundStyle(Theme.SecondaryText)
                     Divider()
-                    Text("Library Metadata").font(.system(size: 15, weight: .semibold))
+                    Text(I18n.T("Library Metadata")).font(.system(size: 15, weight: .semibold))
                     HStack {
-                        Button("Export library…") { Store.ExportLibrary() }.buttonStyle(SecondaryButtonStyle())
-                        Button("Import library…") { Store.ImportLibrary() }.buttonStyle(SecondaryButtonStyle())
+                        Button(I18n.T("Export library…")) { Store.ExportLibrary() }.buttonStyle(SecondaryButtonStyle())
+                        Button(I18n.T("Import library…")) { Store.ImportLibrary() }.buttonStyle(SecondaryButtonStyle())
                     }
                 }
             }
@@ -428,7 +442,7 @@ struct PreferencesDashboardView: View {
 
     private var Compatibility: some View {
         VStack(alignment: .leading, spacing: 18) {
-            SettingsHeading("Compatibility", "Play supported Windows games on your Mac.", "terminal")
+            SettingsHeading(I18n.T("Compatibility"), "Play supported Windows games on your Mac.", "terminal")
             PreferenceCard {
                 VStack(alignment: .leading, spacing: 19) {
                     HStack(spacing: 12) {
@@ -478,12 +492,12 @@ struct PreferencesDashboardView: View {
                             .font(.system(size: 12)).foregroundStyle(.green)
                     }
                     HStack(spacing: 17) {
-                        Button("Advanced options") { ShowingCompatibility = true }
-                        Button("Check again") { Task { RuntimeStatus = await Store.Compatibility.Detect() } }
+                        Button(I18n.T("Advanced options")) { ShowingCompatibility = true }
+                        Button(I18n.T("Check again")) { Task { RuntimeStatus = await Store.Compatibility.Detect() } }
                     }
                     .buttonStyle(.plain).font(.system(size: 12)).foregroundStyle(Theme.Accent)
                     .disabled(InstallingCompatibility)
-                    Text("Game support varies by title. Highball is a free, open source project.")
+                    Text(I18n.T("Game support varies by title. Highball is a free, open source project."))
                         .font(.system(size: 11)).foregroundStyle(Theme.SecondaryText)
                 }
             }
@@ -493,27 +507,27 @@ struct PreferencesDashboardView: View {
 
     private var Tools: some View {
         VStack(alignment: .leading, spacing: 18) {
-            SettingsHeading("Tools", "Game sources, Workshop downloader and app components.", "shippingbox")
+            SettingsHeading(I18n.T("Tools"), "Game sources, Workshop downloader and app components.", "shippingbox")
             TwoColumns {
                 PreferenceCard {
                     VStack(alignment: .leading, spacing: 16) {
-                        Label("Ascendara Timemachine", systemImage: "clock.arrow.circlepath")
+                        Label(I18n.T("Ascendara Timemachine"), systemImage: "clock.arrow.circlepath")
                             .font(.system(size: 16, weight: .semibold))
-                        Text("Explore older download links when your chosen catalogue has history available.")
+                        Text(I18n.T("Explore older download links when your chosen catalogue has history available."))
                             .font(.system(size: 12)).foregroundStyle(Theme.SecondaryText)
-                        Button("Open game sources") { Store.CurrentRoute = .Sources }.buttonStyle(SecondaryButtonStyle())
+                        Button(I18n.T("Open game sources")) { Store.CurrentRoute = .Sources }.buttonStyle(SecondaryButtonStyle())
                     }
                 }
             } Right: {
                 PreferenceCard {
                     VStack(alignment: .leading, spacing: 16) {
-                        Label("Workshop Downloader", systemImage: "shippingbox")
+                        Label(I18n.T("Workshop Downloader"), systemImage: "shippingbox")
                             .font(.system(size: 16, weight: .semibold))
-                        Text("Download public Steam Workshop items with your installed SteamCMD.")
+                        Text(I18n.T("Download public Steam Workshop items with your installed SteamCMD."))
                             .font(.system(size: 12)).foregroundStyle(Theme.SecondaryText)
-                        SettingsField("SteamCMD executable", Text: $Store.Settings.SteamCMDPath, Placeholder: "/path/to/steamcmd")
+                        SettingsField("SteamCMD executable", Text: $Store.Settings.SteamCMDPath, Placeholder: I18n.T("/path/to/steamcmd"))
                         PreferenceToggle("Show in Navigation Bar", "Add Workshop to the bottom dock.", Value: $Store.Settings.ShowWorkshop)
-                        Button("Open Workshop") { Store.CurrentRoute = .Workshop }.buttonStyle(SecondaryButtonStyle())
+                        Button(I18n.T("Open Workshop")) { Store.CurrentRoute = .Workshop }.buttonStyle(SecondaryButtonStyle())
                     }
                 }
             }
@@ -522,28 +536,28 @@ struct PreferencesDashboardView: View {
 
     private var Advanced: some View {
         VStack(alignment: .leading, spacing: 18) {
-            SettingsHeading("Advanced", "Update branch, support and developer options.", "flask")
+            SettingsHeading(I18n.T("Advanced"), "Update branch, support and developer options.", "flask")
             TwoColumns {
                 PreferenceCard {
                     VStack(alignment: .leading, spacing: 17) {
-                        Label("App Branch", systemImage: "flask").font(.system(size: 16, weight: .semibold))
-                        Text("Choose your release channel. Branch switching is not available on macOS in the original Ascendara build.")
+                        Label(I18n.T("App Branch"), systemImage: "flask").font(.system(size: 16, weight: .semibold))
+                        Text(I18n.T("Choose your release channel. Branch switching is not available on macOS in the original Ascendara build."))
                             .font(.system(size: 12)).foregroundStyle(Theme.SecondaryText)
                         BranchRow("Live", "The stable release. Recommended for all users.", Color.green, Active: true)
                         BranchRow("Public Testing", "Early access to upcoming features before they ship to Live.", Color.yellow, Active: false)
                         BranchRow("Experimental", "Cutting-edge builds with the latest changes.", Color.red, Active: false)
-                        Button("Open app data folder") { NSWorkspace.shared.open(AppPaths.Support) }
+                        Button(I18n.T("Open app data folder")) { NSWorkspace.shared.open(AppPaths.Support) }
                             .buttonStyle(SecondaryButtonStyle())
                     }
                 }
             } Right: {
                 PreferenceCard {
                     VStack(alignment: .leading, spacing: 18) {
-                        Label("Quick Support", systemImage: "questionmark.bubble")
+                        Label(I18n.T("Quick Support"), systemImage: "questionmark.bubble")
                             .font(.system(size: 16, weight: .semibold))
-                        Text("Get help with Ascendara or report a problem with this Mac build.")
+                        Text(I18n.T("Get help with Ascendara or report a problem with this Mac build."))
                             .font(.system(size: 12)).foregroundStyle(Theme.SecondaryText)
-                        Button("Get Help") { Store.OpenExternal("https://ascendara.app/docs") }
+                        Button(I18n.T("Get Help")) { Store.OpenExternal("https://ascendara.app/docs") }
                             .buttonStyle(PrimaryButtonStyle())
                     }
                 }
@@ -559,7 +573,7 @@ struct PreferencesDashboardView: View {
     }
 
     private func CardTitle(_ Title: String) -> some View {
-        Text(Title).font(.system(size: 11, weight: .bold)).tracking(1.3).foregroundStyle(Theme.SecondaryText)
+        Text(I18n.T(Title)).font(.system(size: 11, weight: .bold)).tracking(1.3).foregroundStyle(Theme.SecondaryText)
     }
 
     private func ThemeChoices(_ Title: String, Names: [String], Expanded: Binding<Bool>) -> some View {
@@ -610,8 +624,8 @@ struct PreferencesDashboardView: View {
     private func PreferenceToggle(_ Title: String, _ Detail: String, Value: Binding<Bool>) -> some View {
         HStack(alignment: .center, spacing: 16) {
             VStack(alignment: .leading, spacing: 6) {
-                Text(Title).font(.system(size: 13, weight: .semibold))
-                Text(Detail).font(.system(size: 12)).foregroundStyle(Theme.SecondaryText)
+                Text(I18n.T(Title)).font(.system(size: 13, weight: .semibold))
+                Text(I18n.T(Detail)).font(.system(size: 12)).foregroundStyle(Theme.SecondaryText)
             }
             Spacer(minLength: 0)
             Toggle(Title, isOn: Value).labelsHidden().tint(Theme.Accent)
@@ -623,8 +637,8 @@ struct PreferencesDashboardView: View {
             Image(systemName: Available ? "checkmark.circle.fill" : "minus.circle")
                 .foregroundStyle(Available ? Color.green : Theme.SecondaryText)
             VStack(alignment: .leading, spacing: 4) {
-                Text(Title).font(.system(size: 13, weight: .semibold))
-                Text(Detail).font(.system(size: 11)).foregroundStyle(Theme.SecondaryText).lineLimit(2)
+                Text(I18n.T(Title)).font(.system(size: 13, weight: .semibold))
+                Text(I18n.T(Detail)).font(.system(size: 11)).foregroundStyle(Theme.SecondaryText).lineLimit(2)
             }
             Spacer(minLength: 0)
         }.padding(12).background(Theme.Muted.opacity(0.4), in: RoundedRectangle(cornerRadius: 8))
@@ -635,14 +649,14 @@ struct PreferencesDashboardView: View {
             Circle().fill(Tint).frame(width: 10, height: 10).padding(.top, 4)
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 8) {
-                    Text(Title).font(.system(size: 13, weight: .semibold))
+                    Text(I18n.T(Title)).font(.system(size: 13, weight: .semibold))
                     if Active {
-                        Text("Active").font(.system(size: 10, weight: .semibold)).foregroundStyle(.green)
+                        Text(I18n.T("Active")).font(.system(size: 10, weight: .semibold)).foregroundStyle(.green)
                             .padding(.horizontal, 7).padding(.vertical, 3)
                             .background(Color.green.opacity(0.12), in: Capsule())
                     }
                 }
-                Text(Detail).font(.system(size: 11)).foregroundStyle(Theme.SecondaryText)
+                Text(I18n.T(Detail)).font(.system(size: 11)).foregroundStyle(Theme.SecondaryText)
             }
             Spacer(minLength: 0)
         }.padding(.vertical, 8).opacity(Active ? 1 : 0.72)
@@ -651,7 +665,7 @@ struct PreferencesDashboardView: View {
     private func IndexMetric(_ Name: String, _ Value: String) -> some View {
         VStack(alignment: .leading, spacing: 7) {
             Text(Name).font(.system(size: 9, weight: .bold)).tracking(0.9).foregroundStyle(Theme.SecondaryText)
-            Text(Value).font(.system(size: 15, weight: .semibold)).lineLimit(1)
+            Text(I18n.T(Value)).font(.system(size: 15, weight: .semibold)).lineLimit(1)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12).background(Theme.Muted.opacity(0.5), in: RoundedRectangle(cornerRadius: 8))
